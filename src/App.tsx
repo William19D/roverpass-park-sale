@@ -21,112 +21,25 @@ import AuthCallback from "./pages/AuthCallback";
 import EmailVerification from "./pages/EmailVerification";
 import ListingEdit from "./pages/ListingEdit";
 import UserProfile from "./pages/UserProfile";
-import Support from "./pages/Support"; // Add this import
+import Support from "./pages/Support";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
-import SupportTickets from "./pages/admin/SupportTickets"; // Add this import
+import SupportTickets from "./pages/admin/SupportTickets";
 
 // Components
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { Header, HeaderSpacer } from "@/components/layout/Header";
-// Import AdminRoute component
 import { AdminRoute } from "@/components/admin/AdminRoute";
 
 const queryClient = new QueryClient();
 
-// Configuraciones para rutas
-const DOMAIN = "https://roverpass.com";
-const PATH_PREFIX = "/rv-parks-for-sale";
+// If we're in production on Vercel, we need to handle the base path differently
+const isVercelProduction = import.meta.env.PROD && window.location.hostname === 'roverpass-park-sale.vercel.app';
 
-// Detectar si estamos en un entorno que requiere redirección externa
-const isExternalRedirectRequired = () => {
-  // En desarrollo local o en roverpass.com, no redireccionamos
-  const isLocalhost = window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1';
-  const isTargetDomain = window.location.hostname === 'roverpass.com';
-  
-  return !isLocalhost && !isTargetDomain;
-};
-
-// Función para generar URLs absolutas
-export const absoluteUrl = (path: string): string => {
-  // Asegurarse de que la ruta comience con /
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  
-  // Para enlaces internos en React Router
-  return `${PATH_PREFIX}${normalizedPath}`;
-};
-
-// Función para generar URLs completas con dominio
-export const fullUrl = (path: string): string => {
-  const url = absoluteUrl(path);
-  return `${DOMAIN}${url}`;
-};
-
-// Componente de redirección inteligente que envía al usuario a la URL externa
-const ExternalRedirect = ({ to }: { to: string }) => {
-  useEffect(() => {
-    window.location.href = fullUrl(to);
-  }, [to]);
-  
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-[#f74f4f]" />
-      <p className="mt-4 text-gray-600">Redirecting to RoverPass.com...</p>
-    </div>
-  );
-};
-
-// Componente para manejar clicks en enlaces y redirigir si es necesario
-const LinkWrapper = ({ to, children }: { to: string, children: React.ReactNode }) => {
-  const handleClick = (e: React.MouseEvent) => {
-    if (isExternalRedirectRequired()) {
-      e.preventDefault();
-      window.location.href = fullUrl(to);
-    }
-  };
-  
-  return (
-    <a 
-      href={isExternalRedirectRequired() ? fullUrl(to) : absoluteUrl(to)}
-      onClick={handleClick}
-    >
-      {children}
-    </a>
-  );
-};
-
-// Trailing slash handling component
-const TrailingSlashHandler = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Skip if we're on the root path already with trailing slash or non-root with trailing slash
-    if (location.pathname === '/' || location.pathname.endsWith('/')) {
-      return;
-    }
-
-    // Check specifically for the case when someone enters without trailing slash
-    if (location.pathname === '') {
-      console.log('[Router] Redirecting to add trailing slash');
-      navigate('/', { replace: true });
-    }
-
-    // Log what we're doing for debugging
-    console.log('[Router] Adding trailing slash to:', location.pathname);
-    
-    // Add trailing slash and keep any query parameters and hash
-    navigate(`${location.pathname}/`, { 
-      replace: true,
-      state: location.state
-    });
-  }, [location.pathname, navigate]);
-
-  return null;
-};
+// For Vercel deployment we don't need a prefix, for production on RoverPass domain we would
+const PATH_PREFIX = isVercelProduction ? '' : '/rv-parks-for-sale';
 
 // Admin redirect component - ensures admins are directed to admin dashboard
 const AdminRedirect = () => {
@@ -148,13 +61,13 @@ const AdminRedirect = () => {
         
       // Check if it's a fresh login through auth callback or login success page
       const isAuthFlow = 
-        currentPath === '/auth/callback/' || 
-        currentPath === '/auth/success/' || 
-        currentPath === '/login/';
+        currentPath === '/auth/callback' || 
+        currentPath === '/auth/success' || 
+        currentPath === '/login';
         
       if (!isAlreadyOnAdminRoute && (isAuthFlow || currentPath === '/')) {
         console.log('[AdminRedirect] Detected admin user, redirecting to admin dashboard');
-        navigate('/admin/dashboard/', { replace: true });
+        navigate('/admin/dashboard', { replace: true });
       }
     }
   }, [user, isAdmin, loading, location.pathname, navigate]);
@@ -167,14 +80,8 @@ const AppRoutes = () => {
   const { user, loading, isAdmin, roles } = useAuth();
   const location = useLocation();
   
-  // Si necesitamos redirección externa y no estamos en la ruta raíz, redirigir
-  if (isExternalRedirectRequired() && location.pathname !== PATH_PREFIX && location.pathname !== `${PATH_PREFIX}/`) {
-    return <ExternalRedirect to={location.pathname.replace(PATH_PREFIX, '')} />;
-  }
-  
   // Detect admin routes
-  const isAdminRoute = location.pathname.startsWith('/admin') || 
-                       location.pathname.startsWith(`${PATH_PREFIX}/admin`);
+  const isAdminRoute = location.pathname.startsWith('/admin');
   
   // Debug logging
   useEffect(() => {
@@ -211,7 +118,7 @@ const AppRoutes = () => {
         <Route path="/" element={
           // Redirect admins from home page to admin dashboard
           user && isAdmin ? 
-            <Navigate to="/admin/dashboard/" replace /> : 
+            <Navigate to="/admin/dashboard" replace /> : 
             <Index />
         } />
         <Route path="/listings" element={<Listings />} />
@@ -249,7 +156,7 @@ const AppRoutes = () => {
         {/* Authentication routes */}
         <Route path="/login" element={
           user ? (
-            isAdmin ? <Navigate to="/admin/dashboard/" replace /> : <Navigate to="/" replace />
+            isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/" replace />
           ) : <Login />
         } />
         <Route path="/register" element={
@@ -279,8 +186,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter basename={PATH_PREFIX}>
-          {/* Add the TrailingSlashHandler component here */}
-          <TrailingSlashHandler />
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
