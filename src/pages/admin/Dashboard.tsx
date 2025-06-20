@@ -724,7 +724,7 @@ const AdminDashboard = () => {
             <Button 
               onClick={() => {
                 console.log('➕ Add new listing button clicked');
-                navigate('/admin/listings/new');
+                navigate('/listings/new');  // Changed from '/admin/listings/new' to '/listings/new'
               }}
               className="bg-[#f74f4f] hover:bg-[#e43c3c]"
             >

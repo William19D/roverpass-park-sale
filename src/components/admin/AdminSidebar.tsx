@@ -1,49 +1,37 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
-  LayoutDashboard, 
-  MessageSquare
+  LayoutDashboard
 } from "lucide-react";
 
-interface AdminSidebarProps {
-  collapsed?: boolean;
-}
+// Remove collapsed prop from interface
+interface AdminSidebarProps {}
 
-// Define admin navigation items - reduced to only Dashboard and Support Tickets
+// Define admin navigation items - only Dashboard
 const adminNavItems = [
   {
     title: "Dashboard",
     href: "/admin/dashboard/",
     icon: LayoutDashboard,
-  },
-  {
-    title: "Support Tickets",
-    href: "/admin/support/",
-    icon: MessageSquare,
   }
 ];
 
-export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
+export function AdminSidebar({}: AdminSidebarProps) {
   const location = useLocation();
   
   return (
-    <aside className={cn(
-      "h-screen fixed top-0 left-0 z-40 bg-white border-r border-gray-200 transition-all",
-      collapsed ? "w-16" : "w-64"
-    )}>
+    <aside className="h-screen fixed top-0 left-0 z-50 bg-white border-r border-gray-200 w-64 overflow-hidden">
       <div className="h-full flex flex-col justify-between py-4">
         <div>
+          {/* Logo Section */}
           <div className="flex items-center justify-center h-16 mb-6">
-            {collapsed ? (
-              <div className="h-8 w-8 bg-[#f74f4f] rounded-md flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RP</span>
-              </div>
-            ) : (
-              <h1 className="text-xl font-bold text-[#f74f4f]">RoverPass Admin</h1>
-            )}
+            <h1 className="text-xl font-bold text-[#f74f4f] px-4 whitespace-nowrap overflow-hidden text-ellipsis">
+              RoverPass Admin
+            </h1>
           </div>
           
-          <div className="px-3">
+          {/* Navigation Section */}
+          <div className="px-2">
             <ul className="space-y-2">
               {adminNavItems.map((item) => {
                 const isActive = location.pathname === item.href || 
@@ -67,14 +55,14 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
                           : "text-gray-500 group-hover:text-[#f74f4f]"
                       )} />
                       
-                      {!collapsed && (
-                        <span className={cn(
-                          "ml-3 transition-colors flex-1",
+                      <span 
+                        className={cn(
+                          "ml-3 whitespace-nowrap",
                           isActive ? "font-medium" : ""
-                        )}>
-                          {item.title}
-                        </span>
-                      )}
+                        )}
+                      >
+                        {item.title}
+                      </span>
                     </Link>
                   </li>
                 );
@@ -87,5 +75,4 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   );
 }
 
-// Add default export to support both import styles
 export default AdminSidebar;

@@ -1,10 +1,7 @@
-import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
-  Menu,
-  User,
   LogOut,
   ChevronDown
 } from "lucide-react";
@@ -17,14 +14,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface AdminHeaderProps {
-  toggleSidebar: () => void;
-  sidebarCollapsed: boolean;
-}
+// Remove sidebar toggle props
+interface AdminHeaderProps {}
 
-export function AdminHeader({ toggleSidebar, sidebarCollapsed }: AdminHeaderProps) {
+export function AdminHeader({}: AdminHeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -49,36 +44,26 @@ export function AdminHeader({ toggleSidebar, sidebarCollapsed }: AdminHeaderProp
   };
 
   return (
-    <header className={cn(
-      "fixed top-0 z-30 bg-white border-b border-gray-200 h-16 transition-all duration-300",
-      sidebarCollapsed ? "left-16 right-0" : "left-64 right-0"
-    )}>
+    <header className="fixed top-0 z-40 bg-white border-b border-gray-200 h-16 transition-all duration-300 left-64 right-0">
       <div className="h-full px-4 flex items-center justify-between">
         <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar}
-            className="mr-2"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <h2 className="text-lg font-semibold hidden sm:block">
+          {/* Hamburger menu button removed */}
+          <h2 className="text-lg font-semibold">
             Admin Panel
           </h2>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 hover:bg-gray-100">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="flex items-center gap-1 hover:bg-gray-100">
+                <Avatar className="h-8 w-8 mr-1">
                   <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:inline">Admin</span>
-                <ChevronDown className="h-4 w-4" />
+                <span className="hidden sm:inline-block text-sm">Admin</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

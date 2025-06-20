@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { cn } from "@/lib/utils";
@@ -8,23 +7,15 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminSidebar collapsed={sidebarCollapsed} />
-      <AdminHeader 
-        toggleSidebar={toggleSidebar} 
-        sidebarCollapsed={sidebarCollapsed} 
-      />
-      <main className={cn(
-        "pt-16 transition-all duration-300 min-h-screen",
-        sidebarCollapsed ? "ml-16" : "ml-64"
-      )}>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar is always expanded */}
+      <AdminSidebar />
+      
+      {/* Header without toggle functionality */}
+      <AdminHeader />
+      
+      <main className="flex-1 pt-16 transition-all duration-300 min-h-screen ml-64">
         <div className="p-6">
           {children}
         </div>
