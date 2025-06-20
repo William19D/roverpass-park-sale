@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Header, HeaderSpacer } from "@/components/layout/Header";
+import { Header } from "@/components/layout/Header"; // Removed HeaderSpacer import
 import { Footer } from "@/components/layout/Footer";
 import { useParams, Link } from "react-router-dom";
 import { mockListings } from "@/data/mockListings";
@@ -758,7 +758,6 @@ const ListingDetail = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <HeaderSpacer />
         <div className="container mx-auto px-4 py-24 text-center flex-grow">
           <div className="flex flex-col items-center justify-center h-full">
             <Loader2 className="h-12 w-12 text-[#f74f4f] animate-spin mb-4" />
@@ -775,7 +774,6 @@ const ListingDetail = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <HeaderSpacer />
         <div className="container mx-auto px-4 py-24 text-center flex-grow">
           <div className="max-w-md mx-auto">
             <div className="bg-[#f74f4f]/10 rounded-full p-6 inline-block mb-6">
@@ -824,7 +822,7 @@ const ListingDetail = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
-      <HeaderSpacer />
+      {/* HeaderSpacer removed to fix the spacing issue */}
       
       {/* Full screen image view */}
       {isFullscreen && (
@@ -1442,10 +1440,10 @@ This turnkey operation is perfect for investors looking to enter the growing RV 
                 <Button 
                   className="w-full bg-white hover:bg-white/90 text-[#f74f4f]"
                   size="lg"
-                  onClick={() => setContactModalOpen(true)}
+                                    onClick={() => setContactModalOpen(true)}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
-                                    Contact About This Property
+                  Contact About This Property
                 </Button>
               </CardContent>
             </Card>
@@ -1552,4 +1550,3 @@ This turnkey operation is perfect for investors looking to enter the growing RV 
 };
 
 export default ListingDetail;
-                
