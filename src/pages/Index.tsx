@@ -6,7 +6,7 @@ import { ListingCard } from "@/components/listings/ListingCard";
 import { getFeaturedListings, Listing } from "@/data/mockListings";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Helmet } from "react-helmet"; // Now properly imported
+import { Helmet } from "react-helmet-async"; // Changed import to react-helmet-async
 import { 
   ArrowRight, Calendar, BarChart3, CreditCard, 
   Users, CheckCircle2, Loader2, MapPin 
