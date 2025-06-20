@@ -35,11 +35,12 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 
 const queryClient = new QueryClient();
 
-// If we're in production on Vercel, we need to handle the base path differently
+// Update the path prefix logic to work correctly in all environments
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const isVercelProduction = import.meta.env.PROD && window.location.hostname === 'roverpass-park-sale.vercel.app';
 
-// For Vercel deployment we don't need a prefix, for production on RoverPass domain we would
-const PATH_PREFIX = isVercelProduction ? '' : '/rv-parks-for-sale';
+// Don't use prefix for localhost or Vercel production
+const PATH_PREFIX = isLocalhost || isVercelProduction ? '' : '/rv-parks-for-sale';
 
 // Admin redirect component - ensures admins are directed to admin dashboard
 const AdminRedirect = () => {
