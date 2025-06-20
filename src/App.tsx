@@ -94,8 +94,8 @@ const AppRoutes = () => {
       )}
       
       <Routes>
-        {/* Public routes - No more automatic admin redirects */}
-        <Route path="/" element={<Index />} />
+        {/* Public routes */}
+        <Route path="/" element={<Index />} /> {/* Allow all users to access the homepage */}
         <Route path="/listings" element={<Listings />} />
         <Route path="/listings/:id" element={<ListingDetail />} />
         <Route path="/support" element={<Support />} />
