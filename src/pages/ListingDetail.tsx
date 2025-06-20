@@ -167,6 +167,7 @@ const ListingDetail = () => {
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
+  const [loadingBrokerInfo, setLoadingBrokerInfo] = useState(false);
   
   // Contact form state
   const [name, setName] = useState("");
@@ -181,9 +182,32 @@ const ListingDetail = () => {
   
   const { toast } = useToast();
 
+  // Function to fetch broker name using Edge Function
+  const fetchBrokerName = async (listingId: string | number): Promise<string | null> => {
+    try {
+      setLoadingBrokerInfo(true);
+      const { data, error } = await supabase.functions.invoke('get-broker-info', {
+        body: { listingId }
+      });
+      
+      if (error) {
+        console.error('Error fetching broker info:', error);
+        return null;
+      }
+      
+      return data.broker_name;
+    } catch (err) {
+      console.error('Error invoking edge function:', err);
+      return null;
+    } finally {
+      setLoadingBrokerInfo(false);
+    }
+  };
+
   // Fetch current authenticated user
   useEffect(() => {
-    const fetchCurrentUser = async () => {      const { data: { user }, error } = await supabase.auth.getUser();
+    const fetchCurrentUser = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
         return;
@@ -214,7 +238,8 @@ const ListingDetail = () => {
       setMessage(`I'm interested in ${listing.title}. Please send me more information.`);
     }
   }, [listing]);
-    // Handle hCaptcha verification
+    
+  // Handle hCaptcha verification
   const handleVerificationSuccess = (token: string) => {
     setCaptchaToken(token);
   };
@@ -273,7 +298,9 @@ const ListingDetail = () => {
           setDocuments(processedDocs);
         } else {
           setDocuments([]);
-        }      } catch (error) {
+        }      
+      } catch (error) {
+        console.error("Error fetching documents:", error);
         setDocuments([]);
       } finally {
         setLoadingDocuments(false);
@@ -355,7 +382,8 @@ const ListingDetail = () => {
           .single();
         
         if (supabaseError) throw supabaseError;
-          if (!supabaseListing) {
+        
+        if (!supabaseListing) {
           setError("Listing not found");
           setLoading(false);
           return;
@@ -380,7 +408,7 @@ const ListingDetail = () => {
           return publicUrl?.publicUrl || '';
         }) || [];
         
-        // Fetch user info if user_id exists
+        // Initialize broker info with default values
         let brokerInfo: BrokerInfo = { 
           id: "unknown",
           name: "Unknown Broker",
@@ -393,29 +421,42 @@ const ListingDetail = () => {
           verifiedStatus: true
         };
         
+        // If we have a user_id, try getting broker name from Edge Function
         if (supabaseListing.user_id) {
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', supabaseListing.user_id)
-            .single();
-            
-          if (!userError && userData) {
+          // Use Edge Function to get broker name
+          const brokerName = await fetchBrokerName(supabaseListing.id);
+          
+          if (brokerName) {
             brokerInfo = {
-              id: userData.id || "unknown",
-              name: userData.full_name || "Unknown Broker",
-              email: userData.email || 'contact@example.com',
-              company: userData.company_name || 'RV Park Specialists',
-              avatar: userData.avatar_url,
-              phone: userData.phone,
-              title: userData.title || "RV Park Specialist",
-              bio: userData.bio || "Specialist in recreational property sales",
-              website: userData.website,
-              experience: userData.experience || 5,
-              totalListings: 24, // This would come from a separate query in a real app
-              joinedDate: userData.created_at,
-              verifiedStatus: userData.verified || true
+              ...brokerInfo,
+              id: supabaseListing.user_id,
+              name: brokerName,
             };
+          } else {
+            // Fallback to profile data if Edge Function fails
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', supabaseListing.user_id)
+              .single();
+              
+            if (!userError && userData) {
+              brokerInfo = {
+                id: userData.id || "unknown",
+                name: userData.full_name || "Unknown Broker",
+                email: userData.email || 'contact@example.com',
+                company: userData.company_name || 'RV Park Specialists',
+                avatar: userData.avatar_url,
+                phone: userData.phone,
+                title: userData.title || "RV Park Specialist",
+                bio: userData.bio || "Specialist in recreational property sales",
+                website: userData.website,
+                experience: userData.experience || 5,
+                totalListings: 24,
+                joinedDate: userData.created_at,
+                verifiedStatus: userData.verified || true
+              };
+            }
           }
         }
         
@@ -439,13 +480,15 @@ const ListingDetail = () => {
                   key => supabaseListing.amenities[key] === true
                 );
               }
-            }          } catch (e) {
+            }          
+          } catch (e) {
+            console.error("Failed to parse amenities:", e);
           }
         }
         
         setAmenities(amenitiesList);
         
-        // Format listing data to match our interface - use snake_case field names from database
+        // Format listing data to match our interface
         const formattedListing: ListingData = {
           id: supabaseListing.id,
           title: supabaseListing.title || "RV Park For Sale",
@@ -475,7 +518,9 @@ const ListingDetail = () => {
           amenities: amenitiesList
         };
         
-        setListing(formattedListing);      } catch (err: any) {
+        setListing(formattedListing);
+      } catch (err: any) {
+        console.error("Error fetching listing:", err);
         setError(err.message || "Failed to load listing");
         toast({
           variant: "destructive",
@@ -492,6 +537,7 @@ const ListingDetail = () => {
     }
   }, [id, toast]);
   
+  // FIXED: handleSubmit function that removes captcha_token field
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -508,7 +554,7 @@ const ListingDetail = () => {
     setSubmitting(true);
     
     try {
-      // Save inquiry to database with captcha token
+      // Save inquiry to database WITHOUT captcha_token field
       const { data, error } = await supabase
         .from('inquiry')
         .insert([
@@ -518,11 +564,14 @@ const ListingDetail = () => {
             email,
             phone,
             message,
-            captcha_token: captchaToken, // Include captcha token in the request
+            // REMOVED: captcha_token: captchaToken, - This field doesn't exist in the database
             created_at: new Date().toISOString()
           }
         ]);
-        if (error) {
+        
+      if (error) {
+        console.error('Error saving inquiry:', error);
+        
         // Reset captcha if submission fails
         captchaRef.current?.resetCaptcha();
         setCaptchaToken(null);
@@ -548,8 +597,11 @@ const ListingDetail = () => {
       setName("");
       setEmail("");
       setPhone("");
+      setMessage("");
       setContactModalOpen(false);
-        } catch (err) {
+    } catch (err) {
+      console.error('Exception in handleSubmit:', err);
+      
       // Reset captcha on error
       captchaRef.current?.resetCaptcha();
       setCaptchaToken(null);
@@ -592,7 +644,7 @@ const ListingDetail = () => {
     );
   };
 
-  // UPDATED: Secure document download handler
+  // Secure document download handler
   const handleDownload = async (doc: DocumentData) => {
     // Show loading toast
     toast({
@@ -662,7 +714,9 @@ const ListingDetail = () => {
         }
       } else {
         throw new Error("Document has no URL or storage path");
-      }    } catch (error) {
+      }    
+    } catch (error) {
+      console.error("Download error:", error);
       toast({
         variant: "destructive",
         title: "Download Failed",
@@ -1391,7 +1445,7 @@ This turnkey operation is perfect for investors looking to enter the growing RV 
                   onClick={() => setContactModalOpen(true)}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  Contact About This Property
+                                    Contact About This Property
                 </Button>
               </CardContent>
             </Card>
@@ -1498,3 +1552,4 @@ This turnkey operation is perfect for investors looking to enter the growing RV 
 };
 
 export default ListingDetail;
+                
