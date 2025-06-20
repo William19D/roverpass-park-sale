@@ -30,13 +30,12 @@ const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
 const SEO_KEYWORDS = "rv parks for sale, campground reservation software, rv park investment, campground management software, buy rv park, sell rv park, rv park listings, campground business, outdoor hospitality investment, campground for sale, rv park marketplace, campground booking system";
 
 const Index = () => {
-  // Estados para los listings y UI
   const [featuredListings, setFeaturedListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
-  // Estados para el formulario de suscripción
+  // Subscription form state
   const [email, setEmail] = useState("");
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -44,17 +43,16 @@ const Index = () => {
   const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
   const captchaRef = useRef<HCaptcha | null>(null);
   const { toast } = useToast();
-  
-  // Cargar listings aprobados cuando el componente se monta
+  // Load approved listings when component mounts
   useEffect(() => {
     const loadApprovedListings = async () => {
-      setIsLoading(true);      try {
-        // Esta función ya está filtrando por status 'approved' en la API
+      setIsLoading(true);
+      try {
         const approvedFeaturedListings = await getFeaturedListings();
-        // Only take the last 3 listings
+        // Only display the 3 most recent listings
         setFeaturedListings(approvedFeaturedListings.slice(0, 3));
       } catch (error) {
-        // No mostramos detalles del error que podrían contener información sensible
+        // Error handling without exposing details
       } finally {
         setIsLoading(false);
       }
@@ -71,8 +69,7 @@ const Index = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Resetear errores cuando cambia el email
+  // Reset errors when email changes
   useEffect(() => {
     if (formError) {
       setFormError(null);
@@ -90,13 +87,11 @@ const Index = () => {
   const handleCaptchaError = () => {
     setFormError("Captcha verification failed. Please try again.");
   };
-  
-  // Validar email
+    // Validate email
   const isValidEmail = (email: string): boolean => {
     const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return re.test(email.toLowerCase());
   };
-
   // Submit subscription
   const handleSubscribe = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -117,7 +112,8 @@ const Index = () => {
     }
     
     setIsSubmittingEmail(true);
-      try {
+    
+    try {
       // Check if email already exists
       const { data: existingEmails, error: checkError } = await supabase
         .from('email_subscriptions')
@@ -168,7 +164,8 @@ const Index = () => {
       setEmail("");
       setCaptchaToken(null);
       captchaRef.current?.resetCaptcha();
-        } catch (error) {
+      
+    } catch (error) {
       setFormError("There was a problem processing your subscription. Please try again.");
       
       // Reset captcha on error
@@ -184,8 +181,7 @@ const Index = () => {
       setIsSubmittingEmail(false);
     }
   };
-  
-  // Array of FAQ items for easier management
+    // FAQ items
   const faqItems = [
     {
       question: "How much does it cost to list my property?",
@@ -204,7 +200,6 @@ const Index = () => {
       answer: "Yes, you can update your listings at any time through your broker dashboard. Changes will be published immediately."
     }
   ];
-
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -224,11 +219,7 @@ const Index = () => {
       transition: { duration: 0.5 }
     }
   };
-  
-  // Generate dynamically the current year for copyright
-  const currentYear = new Date().getFullYear();
-  
-  // Create a canonical URL
+    const currentYear = new Date().getFullYear();
   const canonicalUrl = "https://roverpass.com/";
   
   return (
