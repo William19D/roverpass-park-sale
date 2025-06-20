@@ -176,7 +176,6 @@ useEffect(() => {
   const loadListings = async () => {
     setIsLoading(true);
     try {
-      console.log('[Listings] Starting to fetch approved listings');
       
       // Create a minimal filter to avoid complex queries initially
       const data = await fetchApprovedListings({ 
@@ -184,7 +183,6 @@ useEffect(() => {
         sitesMax: 500 // Keep this simple
       });
       
-      console.log(`[Listings] Received ${data.length} listings from service`);
       setListings(data);
       setFilteredListings(data);
       
@@ -198,7 +196,6 @@ useEffect(() => {
       
       setError(null);
     } catch (err) {
-      console.error('[Listings] Error loading listings:', err);
       setError('Failed to load listings. Please try again later.');
     } finally {
       setIsLoading(false);
@@ -300,7 +297,6 @@ useEffect(() => {
         setFilteredListings(filtered);
         setError(null);
       } catch (err) {
-        console.error('Error applying filters:', err);
         setError('Failed to filter listings. Please try again.');
       } finally {
         setIsLoading(false);

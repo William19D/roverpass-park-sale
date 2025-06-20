@@ -51,7 +51,6 @@ export interface ListingFilters {
  */
 export const fetchApprovedListings = async (filters?: ListingFilters): Promise<Listing[]> => {
   try {
-    console.log('[ListingService] Fetching approved listings with filters:', JSON.stringify(filters || {}));
     
     // Simplified query - no join with users table and only existing columns
     let query = supabase
@@ -69,61 +68,46 @@ export const fetchApprovedListings = async (filters?: ListingFilters): Promise<L
       // Price filters
       if (filters.priceMin !== undefined && filters.priceMin > 0) {
         query = query.gte('price', filters.priceMin);
-        console.log(`[ListingService] Applied price min filter: ${filters.priceMin}`);
       }
       
       if (filters.priceMax !== undefined && filters.priceMax < 10000000) {
         query = query.lte('price', filters.priceMax);
-        console.log(`[ListingService] Applied price max filter: ${filters.priceMax}`);
       }
       
       // State filter
       if (filters.state && filters.state !== '') {
         query = query.eq('state', filters.state);
-        console.log(`[ListingService] Applied state filter: ${filters.state}`);
       }
       
       // Site count filters
       if (filters.sitesMin !== undefined && filters.sitesMin > 0) {
         query = query.gte('num_sites', filters.sitesMin);
-        console.log(`[ListingService] Applied sites min filter: ${filters.sitesMin}`);
       }
       
       if (filters.sitesMax !== undefined && filters.sitesMax < 1000) {
         query = query.lte('num_sites', filters.sitesMax);
-        console.log(`[ListingService] Applied sites max filter: ${filters.sitesMax}`);
       }
       
       // Cap rate filter
       if (filters.capRateMin !== undefined && filters.capRateMin > 0) {
         query = query.gte('cap_rate', filters.capRateMin);
-        console.log(`[ListingService] Applied cap rate min filter: ${filters.capRateMin}`);
       }
       
       // Occupancy rate filter
       if (filters.occupancyRateMin !== undefined && filters.occupancyRateMin > 0) {
         query = query.gte('occupancy_rate', filters.occupancyRateMin);
-        console.log(`[ListingService] Applied occupancy rate min filter: ${filters.occupancyRateMin}`);
       }
-      
-      // Search term
+        // Search term
       if (filters.search && filters.search.trim() !== '') {
         const searchTerm = `%${filters.search.trim()}%`;
         query = query.or(`title.ilike.${searchTerm},description.ilike.${searchTerm},city.ilike.${searchTerm},state.ilike.${searchTerm}`);
-        console.log(`[ListingService] Applied search filter: ${filters.search}`);
       }
     }
 
-    console.log('[ListingService] Executing query for approved listings...');
     const { data, error } = await query;
-    
-    if (error) {
-      console.error('[ListingService] Error fetching listings:', error.message);
-      console.error('[ListingService] Error code:', error.code);
+      if (error) {
       return [];
     }
-    
-    console.log(`[ListingService] Successfully fetched ${data?.length || 0} approved listings`);
     
     // Transform data to match the Listing interface
     if (data && data.length > 0) {
@@ -174,18 +158,14 @@ export const fetchApprovedListings = async (filters?: ListingFilters): Promise<L
             createdAt: listing.created_at || new Date().toISOString(),
             featured: false, // Since featured column doesn't exist, we default to false
             status: listing.status || 'approved'
-          };
-        } catch (itemError) {
-          console.error('[ListingService] Error processing listing item:', itemError);
+          };        } catch (itemError) {
           return null;
         }
       }).filter(item => item !== null) as Listing[];
     }
     
-    console.log('[ListingService] No listings found or empty result');
     return [];
   } catch (error) {
-    console.error('[ListingService] Exception in fetchApprovedListings:', error);
     return [];
   }
 };
@@ -196,8 +176,6 @@ export const fetchApprovedListings = async (filters?: ListingFilters): Promise<L
  */
 export const fetchFeaturedApprovedListings = async (): Promise<Listing[]> => {
   try {
-    console.log('[ListingService] Fetching featured (newest) approved listings');
-    
     // Modified query - no featured column, just get the newest listings
     const { data, error } = await supabase
       .from('listings')
@@ -210,13 +188,9 @@ export const fetchFeaturedApprovedListings = async (): Promise<Listing[]> => {
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(3);
-    
-    if (error) {
-      console.error('[ListingService] Error fetching featured listings:', error.message);
+      if (error) {
       return [];
     }
-    
-    console.log(`[ListingService] Found ${data?.length || 0} recent listings`);
     
     // Transform data to match the Listing interface
     if (data && data.length > 0) {
@@ -270,9 +244,7 @@ export const fetchFeaturedApprovedListings = async (): Promise<Listing[]> => {
             createdAt: listing.created_at || new Date().toISOString(),
             featured: true, // We mark these as featured in the response
             status: listing.status || 'approved'
-          };
-        } catch (itemError) {
-          console.error('[ListingService] Error processing featured listing item:', itemError);
+          };        } catch (itemError) {
           return null;
         }
       }).filter(item => item !== null) as Listing[];
@@ -280,7 +252,6 @@ export const fetchFeaturedApprovedListings = async (): Promise<Listing[]> => {
     
     return [];
   } catch (error) {
-    console.error('[ListingService] Exception in fetchFeaturedApprovedListings:', error);
     return [];
   }
 };
@@ -290,8 +261,6 @@ export const fetchFeaturedApprovedListings = async (): Promise<Listing[]> => {
  */
 export const fetchApprovedListingById = async (id: string): Promise<Listing | null> => {
   try {
-    console.log(`[ListingService] Fetching approved listing with ID: ${id}`);
-    
     // Simplified query - no join with users table and no featured column
     const { data, error } = await supabase
       .from('listings')
@@ -304,13 +273,9 @@ export const fetchApprovedListingById = async (id: string): Promise<Listing | nu
       .eq('id', id)
       .eq('status', 'approved')  // Only return if approved
       .single();
-    
-    if (error) {
-      console.error(`[ListingService] Error fetching listing ${id}:`, error.message);
+      if (error) {
       return null;
     }
-    
-    console.log(`[ListingService] Successfully fetched listing ${id}`);
     
     if (data) {
       try {
@@ -359,16 +324,13 @@ export const fetchApprovedListingById = async (id: string): Promise<Listing | nu
           createdAt: data.created_at || new Date().toISOString(),
           featured: false, // Since featured doesn't exist in DB, default to false
           status: data.status || 'approved'
-        };
-      } catch (processingError) {
-        console.error(`[ListingService] Error processing listing ${id}:`, processingError);
+        };      } catch (processingError) {
         return null;
       }
     }
     
     return null;
   } catch (error) {
-    console.error('[ListingService] Exception in fetchApprovedListingById:', error);
     return null;
   }
 };
@@ -378,22 +340,16 @@ export const fetchApprovedListingById = async (id: string): Promise<Listing | nu
  */
 export const countApprovedListings = async (): Promise<number> => {
   try {
-    console.log('[ListingService] Counting approved listings');
-    
     const { count, error } = await supabase
       .from('listings')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'approved');
-    
-    if (error) {
-      console.error('[ListingService] Error counting listings:', error.message);
+      if (error) {
       return 0;
     }
     
-    console.log(`[ListingService] Found ${count || 0} approved listings`);
     return count || 0;
   } catch (error) {
-    console.error('[ListingService] Exception in countApprovedListings:', error);
     return 0;
   }
 };

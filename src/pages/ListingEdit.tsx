@@ -296,7 +296,8 @@ const DraggableMarker: React.FC<DraggableMarkerProps> = ({
 
   // Enhanced reverse geocode function to convert coordinates to address
   const reverseGeocode = async (lat: number, lng: number): Promise<{ city: string, state: string }> => {
-    try {      const response = await fetch(
+    try {
+      const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
       );
       const data = await response.json();
@@ -305,6 +306,7 @@ const DraggableMarker: React.FC<DraggableMarkerProps> = ({
       let state = '';
       
       if (data && data.address) {
+        console.log("Geocode data:", data.address);
         
         // Try to get city (may be labeled differently based on region)
         city = data.address.city || 
@@ -367,9 +369,12 @@ const DraggableMarker: React.FC<DraggableMarkerProps> = ({
             if (state) break;
           }
         }
-      }      
+      }
+      
+      console.log("Matched city and state:", { city, state });
       return { city, state };
     } catch (error) {
+      console.error("Error in reverse geocoding:", error);
       return { city: '', state: '' };
     }
   };

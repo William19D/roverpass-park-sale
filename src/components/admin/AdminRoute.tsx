@@ -35,7 +35,6 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
   // Verify admin access when the component mounts
   useEffect(() => {
     const verifyAdminAccess = async () => {
-      console.log('[AdminRoute] Verifying admin access...');
       
       try {
         // Short delay to ensure JWT has been processed
@@ -43,11 +42,9 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
         
         // Check if user has admin access permission
         const hasAdminAccess = hasPermission('admin.access');
-        console.log(`[AdminRoute] Admin access verification: ${hasAdminAccess ? 'Granted' : 'Denied'}`);
         
         setVerifying(false);
       } catch (error) {
-        console.error('[AdminRoute] Error verifying admin access:', error);
         setVerifying(false);
       }
     };
@@ -69,17 +66,14 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
   
   // If not logged in, redirect to login
   if (!user) {
-    console.log('[AdminRoute] No authenticated user, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   // If not admin, redirect to home
   if (!isAdmin) {
-    console.log('[AdminRoute] User is not an admin, redirecting to home');
     return <Navigate to="/" replace />;
   }
   
   // Render admin layout with children if user is admin
-  console.log('[AdminRoute] Admin access granted, rendering content');
   return <AdminLayout>{children}</AdminLayout>;
 };

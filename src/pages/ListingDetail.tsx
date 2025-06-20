@@ -124,9 +124,7 @@ const secureDocumentDownload = async (
     const { data, error } = await supabase.storage
       .from(bucketName)
       .download(path);
-    
-    if (error || !data) {
-      console.error("Secure download error:", error);
+      if (error || !data) {
       if (onError) onError(new Error(error?.message || "Failed to download file"));
       return;
     }
@@ -151,9 +149,7 @@ const secureDocumentDownload = async (
     }, 100);
     
     if (onSuccess) onSuccess();
-    
-  } catch (err) {
-    console.error("Secure download failed:", err);
+      } catch (err) {
     if (onError) onError(err instanceof Error ? err : new Error("Unknown error"));
   }
 };
@@ -187,11 +183,9 @@ const ListingDetail = () => {
 
   // Fetch current authenticated user
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+    const fetchCurrentUser = async () => {      const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
-        console.error("Error fetching current user:", error);
         return;
       }
       
@@ -220,15 +214,12 @@ const ListingDetail = () => {
       setMessage(`I'm interested in ${listing.title}. Please send me more information.`);
     }
   }, [listing]);
-  
-  // Handle hCaptcha verification
+    // Handle hCaptcha verification
   const handleVerificationSuccess = (token: string) => {
-    console.log('[Inquiry] hCaptcha verification successful');
     setCaptchaToken(token);
   };
 
   const handleCaptchaError = () => {
-    console.error('[Inquiry] hCaptcha verification failed');
     toast({
       title: "Verification Error",
       description: "Failed to verify that you're not a robot. Please try again.",
@@ -282,9 +273,7 @@ const ListingDetail = () => {
           setDocuments(processedDocs);
         } else {
           setDocuments([]);
-        }
-      } catch (error) {
-        console.error("Error fetching documents:", error);
+        }      } catch (error) {
         setDocuments([]);
       } finally {
         setLoadingDocuments(false);
@@ -366,14 +355,11 @@ const ListingDetail = () => {
           .single();
         
         if (supabaseError) throw supabaseError;
-        
-        if (!supabaseListing) {
+          if (!supabaseListing) {
           setError("Listing not found");
           setLoading(false);
           return;
         }
-
-        console.log("Database listing:", supabaseListing);
         
         // Fetch images for this listing
         const { data: imagesData, error: imagesError } = await supabase
@@ -453,9 +439,7 @@ const ListingDetail = () => {
                   key => supabaseListing.amenities[key] === true
                 );
               }
-            }
-          } catch (e) {
-            console.error("Failed to parse amenities:", e);
+            }          } catch (e) {
           }
         }
         
@@ -491,9 +475,7 @@ const ListingDetail = () => {
           amenities: amenitiesList
         };
         
-        setListing(formattedListing);
-      } catch (err: any) {
-        console.error("Error fetching listing:", err);
+        setListing(formattedListing);      } catch (err: any) {
         setError(err.message || "Failed to load listing");
         toast({
           variant: "destructive",
@@ -540,10 +522,7 @@ const ListingDetail = () => {
             created_at: new Date().toISOString()
           }
         ]);
-      
-      if (error) {
-        console.error('Error saving inquiry:', error);
-        
+        if (error) {
         // Reset captcha if submission fails
         captchaRef.current?.resetCaptcha();
         setCaptchaToken(null);
@@ -570,10 +549,7 @@ const ListingDetail = () => {
       setEmail("");
       setPhone("");
       setContactModalOpen(false);
-      
-    } catch (err) {
-      console.error('Exception in handleSubmit:', err);
-      
+        } catch (err) {
       // Reset captcha on error
       captchaRef.current?.resetCaptcha();
       setCaptchaToken(null);
@@ -686,9 +662,7 @@ const ListingDetail = () => {
         }
       } else {
         throw new Error("Document has no URL or storage path");
-      }
-    } catch (error) {
-      console.error("Download error:", error);
+      }    } catch (error) {
       toast({
         variant: "destructive",
         title: "Download Failed",

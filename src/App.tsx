@@ -55,9 +55,6 @@ const AppRoutes = () => {
   
   // Add additional debug logging for refresh issues
   useEffect(() => {
-    console.log(`[Router] Current URL: ${window.location.href}`);
-    console.log(`[Router] Current pathname: ${location.pathname}`);
-    console.log(`[Router] PATH_PREFIX: ${PATH_PREFIX}`);
   }, [location]);
   
   // Detect admin routes
@@ -65,9 +62,6 @@ const AppRoutes = () => {
   
   // Debug logging
   useEffect(() => {
-    console.log(`[Router] Route changed to: ${location.pathname}`);
-    console.log(`[Router] Current auth state - User: ${user?.id || 'none'}`);
-    console.log(`[Router] Is admin: ${isAdmin}, Roles: ${roles?.join(', ') || 'none'}`);
   }, [location.pathname, user, isAdmin, roles]);
   
   // Show loader during authentication verification
