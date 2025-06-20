@@ -3,30 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Add favicon link pointing to the favicon.ico in the assets directory -->
+    
+    <!-- Favicon links -->
     <link rel="icon" href="/src/assets/favicon.ico" type="image/x-icon" />
     <link rel="shortcut icon" href="/src/assets/favicon.ico" type="image/x-icon" />
-    <!-- Remove the base tag as it's causing conflicts with routing -->
-    <title>RV Parks For Sale | RoverPass</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/src/assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/src/assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/src/assets/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Primary Meta Tags -->
+    <title>RV Parks For Sale & Campground Management | RoverPass</title>
+    <meta name="title" content="RV Parks For Sale & Campground Management | RoverPass">
     <meta name="description" content="Find RV parks and campgrounds for sale across the United States. Browse exclusive listings or list your property for free with RoverPass." />
     <meta name="author" content="RoverPass" />
+    <meta name="keywords" content="rv parks for sale, campground reservation software, rv park investment, campground management, buy rv park, sell rv park, outdoor hospitality, campground business">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
 
-    <meta property="og:title" content="RV Parks For Sale | RoverPass" />
-    <meta property="og:description" content="Find RV parks and campgrounds for sale across the United States. Browse exclusive listings or list your property for free with RoverPass." />
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://roverpass.com/" />
+    <meta property="og:title" content="RV Parks For Sale & Campground Management | RoverPass" />
+    <meta property="og:description" content="Find RV parks and campgrounds for sale across the United States. Browse exclusive listings or list your property for free with RoverPass." />
+    <meta property="og:image" content="https://roverpass.com/og-image.jpg" />
+    <meta property="og:site_name" content="RoverPass">
+    <meta property="og:locale" content="en_US">
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://roverpass.com/" />
+    <meta property="twitter:title" content="RV Parks For Sale & Campground Management | RoverPass" />
+    <meta property="twitter:description" content="Find RV parks and campgrounds for sale across the United States. Browse exclusive listings or list your property for free with RoverPass." />
+    <meta property="twitter:image" content="https://roverpass.com/twitter-image.jpg" />
+    <meta property="twitter:site" content="@roverpass" />
+    <meta property="twitter:creator" content="@roverpass" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://roverpass.com/">
     
-    <!-- Add Font Awesome for social icons -->
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Structured Data / JSON-LD -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "RoverPass",
+        "url": "https://roverpass.com",
+        "logo": "https://roverpass.com/logo.png",
+        "sameAs": [
+          "https://www.facebook.com/roverpass",
+          "https://twitter.com/roverpass",
+          "https://www.linkedin.com/company/roverpass",
+          "https://www.instagram.com/roverpass"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+1-800-123-4567",
+          "contactType": "customer service"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "url": "https://roverpass.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://roverpass.com/listings?search={search_term}",
+          "query-input": "required name=search_term"
+        }
+      }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <!-- Main script -->
     <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    

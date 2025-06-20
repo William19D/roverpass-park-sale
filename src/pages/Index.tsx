@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // Añadida la importación que faltaba
+import { Input } from "@/components/ui/input";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client"; // Updated correct path to supabase client
+import { supabase } from "@/integrations/supabase/client";
 
 // Import images with optimization references
 import backgroundImage from "@/assets/background.jpeg";
@@ -26,8 +26,8 @@ const IS_DEV = import.meta.env.DEV === true || window.location.hostname === 'loc
 // Get environment variables with fallbacks
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
 
-// SEO keywords for the page
-const SEO_KEYWORDS = "rv parks for sale, campground reservation software, rv park investment, campground management software, buy rv park, sell rv park";
+// Enhanced SEO keywords for better coverage
+const SEO_KEYWORDS = "rv parks for sale, campground reservation software, rv park investment, campground management software, buy rv park, sell rv park, rv park listings, campground business, outdoor hospitality investment, campground for sale, rv park marketplace, campground booking system";
 
 const Index = () => {
   // Estados para los listings y UI
@@ -231,35 +231,105 @@ const Index = () => {
     }
   };
   
+  // Generate dynamically the current year for copyright
+  const currentYear = new Date().getFullYear();
+  
+  // Create a canonical URL
+  const canonicalUrl = "https://roverpass.com/";
+  
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Add SEO metadata */}
+      {/* Enhanced SEO metadata with structured data */}
       <Helmet>
-        <title>RoverPass - Find RV Parks For Sale & Campground Management Software</title>
-        <meta name="description" content="Find the perfect RV park investment or manage your campground with RoverPass. Browse exclusive listings and explore our industry-leading reservation software." />
+        <title>RV Parks For Sale & Campground Management Software | RoverPass</title>
+        <meta name="description" content="Find the perfect RV park investment or manage your campground with RoverPass. Browse exclusive listings of campgrounds for sale and explore our industry-leading reservation software." />
         <meta name="keywords" content={SEO_KEYWORDS} />
-        <meta property="og:title" content="RoverPass - RV Parks For Sale & Campground Management" />
-        <meta property="og:description" content="Find RV parks for sale and manage your campground with our reservation software. Connect with qualified buyers or enhance your campground operations." />
+        
+        {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://roverpass.com" />
-        <meta property="og:image" content="/og-image.jpg" />
-        <link rel="canonical" href="https://roverpass.com" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:title" content="RV Parks For Sale & Campground Management | RoverPass" />
+        <meta property="og:description" content="Find RV parks for sale and manage your campground with our reservation software. Connect with qualified buyers or enhance your campground operations." />
+        <meta property="og:image" content="https://roverpass.com/og-image.jpg" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@roverpass" />
+        <meta name="twitter:title" content="RV Parks For Sale & Campground Software | RoverPass" />
+        <meta name="twitter:description" content="Find RV parks for sale or enhance your campground operations with our industry-leading management software." />
+        <meta name="twitter:image" content="https://roverpass.com/twitter-image.jpg" />
+        
+        {/* Canonical link */}
+        <link rel="canonical" href={canonicalUrl} />
+        
+        {/* Schema.org / JSON-LD data */}
+        <script type="application/ld+json">
+          {`{
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "RoverPass",
+            "url": "${canonicalUrl}",
+            "logo": "https://roverpass.com/logo.png",
+            "sameAs": [
+              "https://www.facebook.com/roverpass",
+              "https://twitter.com/roverpass",
+              "https://www.linkedin.com/company/roverpass"
+            ],
+            "description": "RoverPass offers RV parks for sale and campground management software to help owners optimize their businesses."
+          }`}
+        </script>
+        
+        {/* Website schema */}
+        <script type="application/ld+json">
+          {`{
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "RoverPass",
+            "url": "${canonicalUrl}",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "${canonicalUrl}listings?search={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }`}
+        </script>
+
+        {/* FAQ schema */}
+        <script type="application/ld+json">
+          {`{
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              ${faqItems.map(faq => `{
+                "@type": "Question",
+                "name": "${faq.question}",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "${faq.answer}"
+                }
+              }`).join(',')}
+            ]
+          }`}
+        </script>
       </Helmet>
       
       <Header />
       
-      {/* Hero Section - Enhanced with animation */}
-      <section className="relative bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] py-20 md:py-32 overflow-hidden">
+      {/* Hero Section - Enhanced with animation & semantic HTML */}
+      <section className="relative bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] py-20 md:py-32 overflow-hidden" aria-labelledby="hero-heading">
         <div className="absolute inset-0 opacity-10">
           <img 
             src={backgroundImage} 
-            alt="RV Park and Campground Background" 
+            alt="RV Parks and Campgrounds For Sale - Investment Opportunities" 
             className="w-full h-full object-cover"
+            width="1920"
+            height="1080"
+            loading="eager"
           />
         </div>
         
         {/* Moving background pattern */}
-        <div className="absolute inset-0 overflow-hidden opacity-20">
+        <div className="absolute inset-0 overflow-hidden opacity-20" aria-hidden="true">
           <div className="absolute -top-40 -left-40 w-80 h-80 bg-white rounded-full mix-blend-overlay blur-xl animate-float-slow"></div>
           <div className="absolute top-20 right-20 w-60 h-60 bg-white rounded-full mix-blend-overlay blur-xl animate-float"></div>
         </div>
@@ -271,7 +341,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-md">
+            <h1 id="hero-heading" className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-md">
               Find Your Perfect RV Park Investment
             </h1>
             <p className="text-xl md:text-2xl text-white/80 mb-8">
@@ -284,41 +354,39 @@ const Index = () => {
               transition={{ delay: 0.3, duration: 0.5 }}
             >
               <Button asChild size="lg" className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all group">
-                <Link to="/listings" className="flex items-center gap-2">
+                <Link to="/listings" className="flex items-center gap-2" aria-label="Browse all available RV park listings">
                   Browse All Listings
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                 </Link>
               </Button>
               <Button asChild size="lg" className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all group">
-                <Link to="/listings/new">List Your Property</Link>
+                <Link to="/listings/new" aria-label="List your RV park or campground for sale">List Your Property</Link>
               </Button>
             </motion.div>
           </motion.div>
         </div>
-        
-        {/* Removed the non-functional scroll indicator arrow */}
       </section>
       
       {/* Featured Listings Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-gray-50" aria-labelledby="latest-properties-heading">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold relative">
-              Latest Properties
+            <h2 id="latest-properties-heading" className="text-3xl font-bold relative">
+              Latest RV Park Properties
               <span className="absolute -bottom-2 left-0 h-1 w-20 bg-[#f74f4f] rounded-full"></span>
             </h2>
             <Button asChild variant="outline" className="border-[#f74f4f] text-[#f74f4f] hover:bg-[#f74f4f]/5 group">
-              <Link to="/listings" className="flex items-center gap-1">
+              <Link to="/listings" className="flex items-center gap-1" aria-label="View all RV park and campground listings">
                 View All
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </Link>
             </Button>
           </div>
           
           {isLoading ? (
-            <div className="flex justify-center py-20">
+            <div className="flex justify-center py-20" aria-live="polite" aria-busy="true">
               <div className="flex flex-col items-center">
-                <Loader2 className="h-12 w-12 text-[#f74f4f] animate-spin mb-4" />
+                <Loader2 className="h-12 w-12 text-[#f74f4f] animate-spin mb-4" aria-hidden="true" />
                 <p className="text-gray-500 text-lg">Loading latest properties...</p>
               </div>
             </div>
@@ -329,6 +397,7 @@ const Index = () => {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
+              aria-label="Featured RV park and campground listings"
             >
               {featuredListings.map((listing) => (
                 <motion.div key={listing.id} variants={itemVariants}>
@@ -337,9 +406,9 @@ const Index = () => {
               ))}
             </motion.div>
           ) : (
-            <div className="text-center py-20 bg-gray-100 rounded-lg">
+            <div className="text-center py-20 bg-gray-100 rounded-lg" aria-live="polite">
               <div className="flex flex-col items-center">
-                <div className="bg-gray-200 rounded-full p-4 mb-4">
+                <div className="bg-gray-200 rounded-full p-4 mb-4" aria-hidden="true">
                   <MapPin className="h-10 w-10 text-[#f74f4f]" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">No Featured Properties Available</h3>
@@ -347,7 +416,7 @@ const Index = () => {
                   We don't have any featured properties at the moment. Please check back soon or browse our other listings.
                 </p>
                 <Button asChild className="mt-6 bg-[#f74f4f] hover:bg-[#e43c3c]">
-                  <Link to="/listings">Browse All Listings</Link>
+                  <Link to="/listings" aria-label="Browse all available listings">Browse All Listings</Link>
                 </Button>
               </div>
             </div>
@@ -355,8 +424,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* RV Park Reservation Software Section - UPDATED */}
-      <section className="py-20 bg-white overflow-hidden">
+      {/* RV Park Reservation Software Section - With Rich Snippets */}
+      <section className="py-20 bg-white overflow-hidden" aria-labelledby="software-heading">
         <div className="container mx-auto px-4">
           <motion.div 
             className="text-center max-w-3xl mx-auto mb-16"
@@ -365,7 +434,7 @@ const Index = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 relative inline-block">
+            <h2 id="software-heading" className="text-3xl md:text-4xl font-bold mb-6 relative inline-block">
               The Ultimate Campground Reservation Software
               <span className="absolute -bottom-2 left-1/4 right-1/4 h-1 bg-[#f74f4f] rounded-full"></span>
             </h2>
@@ -389,7 +458,7 @@ const Index = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1">
+                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1" aria-hidden="true">
                     <BarChart3 className="h-5 w-5 text-[#f74f4f]" />
                   </div>
                   <div>
@@ -398,7 +467,7 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1">
+                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1" aria-hidden="true">
                     <Calendar className="h-5 w-5 text-[#f74f4f]" />
                   </div>
                   <div>
@@ -407,7 +476,7 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1">
+                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1" aria-hidden="true">
                     <Users className="h-5 w-5 text-[#f74f4f]" />
                   </div>
                   <div>
@@ -416,7 +485,7 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1">
+                  <div className="p-2 rounded-full bg-[#f74f4f]/10 mt-1" aria-hidden="true">
                     <CreditCard className="h-5 w-5 text-[#f74f4f]" />
                   </div>
                   <div>
@@ -427,9 +496,15 @@ const Index = () => {
               </div>
               
               <Button asChild size="lg" className="mt-8 bg-[#f74f4f] hover:bg-[#e43c3c]">
-                <a href="https://www.roverpass.com/p/campground-reservation-software" target="_blank" rel="noopener" className="flex items-center gap-2">
+                <a 
+                  href="https://www.roverpass.com/p/campground-reservation-software" 
+                  target="_blank" 
+                  rel="noopener" 
+                  className="flex items-center gap-2"
+                  aria-label="Learn more about RoverPass Campground Management Software"
+                >
                   Learn More
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                 </a>
               </Button>
             </motion.div>
@@ -443,9 +518,11 @@ const Index = () => {
             >
               <img 
                 src={softwareImage} 
-                alt="RoverPass Campground Reservation Software Dashboard" 
+                alt="RoverPass Campground Reservation Software Dashboard Interface" 
                 className="w-full h-auto rounded-lg" 
                 loading="lazy"
+                width="600"
+                height="400"
               />
             </motion.div>
           </div>
@@ -464,7 +541,7 @@ const Index = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
                   <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -474,7 +551,7 @@ const Index = () => {
               </motion.div>
               
               <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
                   <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
@@ -484,7 +561,7 @@ const Index = () => {
               </motion.div>
               
               <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
                   <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
@@ -494,7 +571,7 @@ const Index = () => {
               </motion.div>
               
               <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
                   <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -510,19 +587,18 @@ const Index = () => {
                 target="_blank" 
                 rel="noopener"
                 className="text-[#f74f4f] font-semibold hover:underline inline-flex items-center"
+                aria-label="Learn more about RoverPass reservation software features"
               >
                 Learn more about our reservation software
-                <ArrowRight className="h-4 w-4 ml-1" />
+                <ArrowRight className="h-4 w-4 ml-1" aria-hidden="true" />
               </a>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Removed the testimonials section for software as requested */}
-      
       {/* RoverPass Features Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white" aria-labelledby="why-list-heading">
         <div className="container mx-auto px-4">
           <motion.div 
             className="max-w-3xl mx-auto text-center mb-12"
@@ -531,8 +607,8 @@ const Index = () => {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-4 relative inline-block">
-              Why List With RoverPass?
+            <h2 id="why-list-heading" className="text-3xl font-bold mb-4 relative inline-block">
+              Why List Your RV Park With RoverPass?
               <span className="absolute -bottom-2 left-1/4 right-1/4 h-1 bg-[#f74f4f] rounded-full"></span>
             </h2>
             <p className="text-lg text-muted-foreground mt-4">
@@ -548,7 +624,7 @@ const Index = () => {
             viewport={{ once: true, margin: "-100px" }}
           >
             <motion.div variants={itemVariants} className="bg-gray-50 p-6 rounded-lg hover:shadow-md transition-all hover:-translate-y-1 group">
-              <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#f74f4f]/20 transition-colors">
+              <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#f74f4f]/20 transition-colors" aria-hidden="true">
                 <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -561,7 +637,7 @@ const Index = () => {
             </motion.div>
             
             <motion.div variants={itemVariants} className="bg-gray-50 p-6 rounded-lg hover:shadow-md transition-all hover:-translate-y-1 group">
-              <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#f74f4f]/20 transition-colors">
+              <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#f74f4f]/20 transition-colors" aria-hidden="true">
                 <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -573,7 +649,7 @@ const Index = () => {
             </motion.div>
             
             <motion.div variants={itemVariants} className="bg-gray-50 p-6 rounded-lg hover:shadow-md transition-all hover:-translate-y-1 group">
-              <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#f74f4f]/20 transition-colors">
+              <div className="w-12 h-12 bg-[#f74f4f]/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#f74f4f]/20 transition-colors" aria-hidden="true">
                 <svg className="w-6 h-6 text-[#f74f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
@@ -588,7 +664,7 @@ const Index = () => {
       </section>
       
       {/* CTA Section - Modified to highlight both services */}
-      <section className="py-16 bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] relative overflow-hidden">
+      <section className="py-16 bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] relative overflow-hidden" aria-labelledby="cta-heading">
         {/* Moving background elements */}
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-xl"></div>
         <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-white/5 blur-xl"></div>
@@ -600,21 +676,27 @@ const Index = () => {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl font-bold text-white mb-4">RV Park Solutions for Every Need</h2>
+          <h2 id="cta-heading" className="text-3xl font-bold text-white mb-4">RV Park Solutions for Every Need</h2>
           <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
             Whether you're buying, selling, or managing an RV park, RoverPass has industry-leading tools to help you succeed.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all group">
-              <Link to="/listings/new" className="flex items-center gap-2">
+              <Link to="/listings/new" className="flex items-center gap-2" aria-label="List your RV park or campground for sale">
                 Sell Your RV Park
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild size="lg" className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all group">
-              <a href="https://www.roverpass.com/p/campground-reservation-software" target="_blank" rel="noopener" className="flex items-center gap-2">
+              <a 
+                href="https://www.roverpass.com/p/campground-reservation-software" 
+                target="_blank" 
+                rel="noopener" 
+                className="flex items-center gap-2"
+                aria-label="Get RoverPass campground reservation software"
+              >
                 Get Reservation Software
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </a>
             </Button>
           </div>
@@ -622,7 +704,7 @@ const Index = () => {
       </section>
       
       {/* FAQ Section - Enhanced with interactive accordion */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white" aria-labelledby="faq-heading">
         <div className="container mx-auto px-4">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -630,8 +712,8 @@ const Index = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-8 text-center relative inline-block">
-              Frequently Asked Questions
+            <h2 id="faq-heading" className="text-3xl font-bold mb-8 text-center relative inline-block">
+              Frequently Asked Questions About RV Park Listings
               <span className="absolute -bottom-2 left-1/4 right-1/4 h-1 bg-[#f74f4f] rounded-full"></span>
             </h2>
           </motion.div>
@@ -677,6 +759,7 @@ const Index = () => {
                   className={`overflow-hidden transition-all duration-300 ease-in-out ${
                     expandedFaq === index ? "max-h-40" : "max-h-0"
                   }`}
+                  aria-hidden={expandedFaq !== index}
                 >
                   <p className="p-6 text-muted-foreground">{faq.answer}</p>
                 </div>
@@ -692,16 +775,16 @@ const Index = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.5, duration: 0.6 }}
           >
-            <p className="text-lg mb-4">Still have questions?</p>
+            <p className="text-lg mb-4">Still have questions about buying or selling RV parks?</p>
             <Button asChild variant="outline" className="border-[#f74f4f] text-[#f74f4f] hover:bg-[#f74f4f]/5">
-              <Link to="/support">Contact Our Support Team</Link>
+              <Link to="/support" aria-label="Contact RoverPass support team">Contact Our Support Team</Link>
             </Button>
           </motion.div>
         </div>
       </section>
 
       {/* Testimonials Section - New section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-gray-50" aria-labelledby="testimonials-heading">
         <div className="container mx-auto px-4">
           <motion.div 
             className="text-center mb-12"
@@ -710,8 +793,8 @@ const Index = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-4 relative inline-block">
-              What Our Clients Say
+            <h2 id="testimonials-heading" className="text-3xl font-bold mb-4 relative inline-block">
+              What Our Clients Say About RoverPass
               <span className="absolute -bottom-2 left-1/4 right-1/4 h-1 bg-[#f74f4f] rounded-full"></span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-4">
@@ -728,7 +811,7 @@ const Index = () => {
           >
             <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all border-t-4 border-[#f74f4f]">
               <div className="flex items-center mb-4">
-                <div className="h-12 w-12 rounded-full bg-[#f74f4f]/10 flex items-center justify-center mr-4">
+                <div className="h-12 w-12 rounded-full bg-[#f74f4f]/10 flex items-center justify-center mr-4" aria-hidden="true">
                   <span className="text-[#f74f4f] font-bold">JD</span>
                 </div>
                 <div>
@@ -737,7 +820,7 @@ const Index = () => {
                 </div>
               </div>
               <p className="italic text-gray-600">"I sold my RV park in just 3 months thanks to RoverPass. The platform connected me with serious buyers and the process was seamless."</p>
-              <div className="flex text-[#ff9f45] mt-4">
+              <div className="flex text-[#ff9f45] mt-4" aria-label="5 out of 5 stars rating">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg key={star} className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -748,7 +831,7 @@ const Index = () => {
             
             <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all border-t-4 border-[#f74f4f]">
               <div className="flex items-center mb-4">
-                <div className="h-12 w-12 rounded-full bg-[#f74f4f]/10 flex items-center justify-center mr-4">
+                <div className="h-12 w-12 rounded-full bg-[#f74f4f]/10 flex items-center justify-center mr-4" aria-hidden="true">
                   <span className="text-[#f74f4f] font-bold">SM</span>
                 </div>
                 <div>
@@ -757,7 +840,7 @@ const Index = () => {
                 </div>
               </div>
               <p className="italic text-gray-600">"The analytics dashboard helps me understand which listings are performing best. My clients are consistently impressed with the quality of leads."</p>
-              <div className="flex text-[#ff9f45] mt-4">
+              <div className="flex text-[#ff9f45] mt-4" aria-label="5 out of 5 stars rating">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg key={star} className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -768,7 +851,7 @@ const Index = () => {
             
             <motion.div variants={itemVariants} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all border-t-4 border-[#f74f4f]">
               <div className="flex items-center mb-4">
-                <div className="h-12 w-12 rounded-full bg-[#f74f4f]/10 flex items-center justify-center mr-4">
+                <div className="h-12 w-12 rounded-full bg-[#f74f4f]/10 flex items-center justify-center mr-4" aria-hidden="true">
                   <span className="text-[#f74f4f] font-bold">RJ</span>
                 </div>
                 <div>
@@ -777,7 +860,7 @@ const Index = () => {
                 </div>
               </div>
               <p className="italic text-gray-600">"I've acquired three properties through RoverPass. The detailed listings and financial information made my investment decisions much easier."</p>
-              <div className="flex text-[#ff9f45] mt-4">
+              <div className="flex text-[#ff9f45] mt-4" aria-label="5 out of 5 stars rating">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg key={star} className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -790,7 +873,7 @@ const Index = () => {
       </section>
       
       {/* Newsletter Section with HCaptcha */}
-      <section className="py-16 bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] relative overflow-hidden">
+      <section className="py-16 bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] relative overflow-hidden" aria-labelledby="newsletter-heading">
         {/* Moving background elements */}
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-xl"></div>
         <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-white/5 blur-xl"></div>
@@ -803,15 +886,15 @@ const Index = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
+            <h2 id="newsletter-heading" className="text-3xl font-bold mb-4">Stay Updated on RV Park Listings</h2>
             <p className="text-xl mb-8 text-white/80">
               Get the latest RV park listings and industry insights delivered to your inbox.
             </p>
             
             {subscriptionSuccess ? (
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-lg mx-auto">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-lg mx-auto" aria-live="polite">
                 <div className="flex flex-col items-center">
-                  <CheckCircle className="h-16 w-16 text-white mb-4" />
+                  <CheckCircle className="h-16 w-16 text-white mb-4" aria-hidden="true" />
                   <h3 className="text-2xl font-semibold mb-2">Thank You!</h3>
                   <p className="mb-6">
                     Your subscription has been confirmed. You'll now receive the latest updates on RV park listings and industry insights.
@@ -825,10 +908,10 @@ const Index = () => {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="max-w-lg mx-auto">
+              <form onSubmit={handleSubscribe} className="max-w-lg mx-auto" aria-labelledby="newsletter-heading">
                 {formError && (
-                  <div className="mb-4 p-3 bg-white/10 backdrop-blur-sm rounded-md text-left flex items-start">
-                    <AlertCircle className="h-5 w-5 text-white mr-2 mt-0.5 flex-shrink-0" />
+                  <div className="mb-4 p-3 bg-white/10 backdrop-blur-sm rounded-md text-left flex items-start" aria-live="assertive">
+                    <AlertCircle className="h-5 w-5 text-white mr-2 mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <span className="text-white text-sm">{formError}</span>
                   </div>
                 )}
@@ -836,22 +919,26 @@ const Index = () => {
                 <div className="flex flex-col sm:flex-row gap-3 mb-6">
                   <Input
                     type="email"
+                    name="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={`flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50
                       ${!email && formError ? "border-red-300" : ""}`}
                     aria-label="Email address for newsletter"
+                    aria-required="true"
+                    aria-invalid={formError ? "true" : "false"}
                     disabled={isSubmittingEmail}
                   />
                   <Button 
                     type="submit"
                     className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all"
                     disabled={isSubmittingEmail || !captchaToken}
+                    aria-label="Subscribe to newsletter"
                   >
                     {isSubmittingEmail ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                         Subscribing...
                       </>
                     ) : "Subscribe"}
@@ -859,7 +946,10 @@ const Index = () => {
                 </div>
                 
                 {/* Security verification section */}
-                <div className={`flex justify-center py-2 mb-4 ${!captchaToken && formError ? "bg-white/10 backdrop-blur-sm rounded-md p-2" : ""}`}>
+                <div 
+                  className={`flex justify-center py-2 mb-4 ${!captchaToken && formError ? "bg-white/10 backdrop-blur-sm rounded-md p-2" : ""}`}
+                  aria-live="polite"
+                >
                   {HCAPTCHA_SITE_KEY ? (
                     <HCaptcha
                       ref={captchaRef}

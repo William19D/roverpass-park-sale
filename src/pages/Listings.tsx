@@ -165,7 +165,6 @@ const Listings = () => {
   const [priceMaxInput, setPriceMaxInput] = useState(extendedFilters.priceMax.toString());
   
   // Saved filter state
-  const [hasSavedCurrentFilter, setHasSavedCurrentFilter] = useState(false);
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
   
   const formatPercent = (value: number) => {
@@ -327,9 +326,6 @@ useEffect(() => {
     if (updates.priceMax !== undefined) {
       setPriceMaxInput(updates.priceMax.toString());
     }
-    
-    // Reset saved state when filters change
-    setHasSavedCurrentFilter(false);
   };
   
   const clearFilters = () => {
@@ -341,7 +337,6 @@ useEffect(() => {
     setSearch('');
     setPriceMinInput(initialExtendedFilters.priceMin.toString());
     setPriceMaxInput(initialExtendedFilters.priceMax.toString());
-    setHasSavedCurrentFilter(false);
   };
   
   const removeFilter = (filter: string) => {
@@ -466,17 +461,6 @@ useEffect(() => {
         setPriceMaxInput(extendedFilters.priceMax.toString());
       }
     }
-  };
-  
-  const saveCurrentFilter = () => {
-    // This would normally save to user profile or local storage
-    setHasSavedCurrentFilter(true);
-    
-    // Show notification or feedback
-    setTimeout(() => {
-      // Reset saved state
-      setHasSavedCurrentFilter(false);
-    }, 3000);
   };
   
   // Animation variants
@@ -688,28 +672,6 @@ useEffect(() => {
           
             {/* Action buttons area */}
             <div className="flex items-center space-x-3 self-end md:self-auto">
-              {/* Save current filter */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant={hasSavedCurrentFilter ? "default" : "outline"} 
-                    size="sm"
-                    onClick={saveCurrentFilter}
-                    disabled={hasSavedCurrentFilter || activeFilters.length === 0}
-                    className={hasSavedCurrentFilter 
-                      ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
-                      : "border-gray-300"
-                    }
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    {hasSavedCurrentFilter ? "Saved" : "Save Filter"}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Save current search for future use</p>
-                </TooltipContent>
-              </Tooltip>
-              
               {/* Advanced filters for mobile */}
               <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <SheetTrigger asChild>
@@ -1138,6 +1100,30 @@ useEffect(() => {
                               }}
                               formatValue={formatCurrency}
                             />
+                          </div>
+                          
+                          {/* Date Listed */}
+                          <div className="space-y-4">
+                            <Label className="text-sm font-medium">Date Listed</Label>
+                            <Select
+                              value={extendedFilters.listedWithinDays?.toString() || ""}
+                              onValueChange={(value) => {
+                                handleFilterChange({
+                                  listedWithinDays: value ? parseInt(value) : null
+                                });
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Any time" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="any">Any time</SelectItem>
+                                <SelectItem value="7">Last 7 days</SelectItem>
+                                <SelectItem value="30">Last 30 days</SelectItem>
+                                <SelectItem value="90">Last 90 days</SelectItem>
+                                <SelectItem value="180">Last 6 months</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </TabsContent>
                       </Tabs>
