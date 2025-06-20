@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
 // Pages
@@ -35,16 +35,29 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 
 const queryClient = new QueryClient();
 
-// Update the path prefix logic to work correctly in all environments
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const isVercelProduction = import.meta.env.PROD && window.location.hostname === 'roverpass-park-sale.vercel.app';
+// Configuración del basename basada en el entorno
+const getBasename = () => {
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+  const isProduction = import.meta.env.PROD;
+  
+  // En desarrollo local, no usar basename
+  if (isLocalhost) {
+    return '';
+  }
+  
+  // En producción, usar el prefijo
+  if (isProduction) {
+    return '/rv-parks-for-sale';
+  }
+  
+  return '';
+};
 
-// Don't use prefix for localhost or Vercel production
-const PATH_PREFIX = isLocalhost || isVercelProduction ? '' : '/rv-parks-for-sale';
+const BASENAME = getBasename();
 
-// Admin redirect component - DISABLED to allow admins free navigation
+// Admin redirect component
 const AdminRedirect = () => {
-  // This component now does nothing - just returns null
   return null;
 };
 
@@ -53,16 +66,8 @@ const AppRoutes = () => {
   const { user, loading, isAdmin, roles } = useAuth();
   const location = useLocation();
   
-  // Add additional debug logging for refresh issues
-  useEffect(() => {
-  }, [location]);
-  
   // Detect admin routes
   const isAdminRoute = location.pathname.startsWith('/admin');
-  
-  // Debug logging
-  useEffect(() => {
-  }, [location.pathname, user, isAdmin, roles]);
   
   // Show loader during authentication verification
   if (loading && !isAdminRoute) {
@@ -76,7 +81,6 @@ const AppRoutes = () => {
   
   return (
     <>
-      {/* Add AdminRedirect component to handle admin redirections */}
       <AdminRedirect />
       
       {/* Only show header on non-admin routes */}
@@ -89,7 +93,7 @@ const AppRoutes = () => {
       
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<Index />} /> {/* Allow all users to access the homepage */}
+        <Route path="/" element={<Index />} />
         <Route path="/listings" element={<Listings />} />
         <Route path="/listings/:id" element={<ListingDetail />} />
         <Route path="/support" element={<Support />} />
@@ -99,7 +103,7 @@ const AppRoutes = () => {
           user ? <UserProfile /> : <Navigate to="/login" state={{ from: location }} replace />
         } />
         
-        {/* Admin routes - reduced to only Dashboard and Support Tickets */}
+        {/* Admin routes */}
         <Route path="/admin/dashboard" element={
           <AdminRoute>
             <AdminDashboard />
@@ -154,7 +158,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename={PATH_PREFIX}>
+        <BrowserRouter basename={BASENAME}>
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
