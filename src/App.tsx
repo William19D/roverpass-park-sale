@@ -70,6 +70,9 @@ const AdminRedirect = () => {
         console.log('[AdminRedirect] Detected admin user, redirecting to admin dashboard');
         navigate('/admin/dashboard', { replace: true });
       }
+
+      // Log current path for debugging refresh issues
+      console.log(`[AdminRedirect] Current path: ${currentPath}, PATH_PREFIX: ${PATH_PREFIX}`);
     }
   }, [user, isAdmin, loading, location.pathname, navigate]);
   
@@ -80,6 +83,13 @@ const AdminRedirect = () => {
 const AppRoutes = () => {
   const { user, loading, isAdmin, roles } = useAuth();
   const location = useLocation();
+  
+  // Add additional debug logging for refresh issues
+  useEffect(() => {
+    console.log(`[Router] Current URL: ${window.location.href}`);
+    console.log(`[Router] Current pathname: ${location.pathname}`);
+    console.log(`[Router] PATH_PREFIX: ${PATH_PREFIX}`);
+  }, [location]);
   
   // Detect admin routes
   const isAdminRoute = location.pathname.startsWith('/admin');
