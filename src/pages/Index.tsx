@@ -1,20 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // Añadida la importación que faltaba
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { getFeaturedListings, Listing } from "@/data/mockListings";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Helmet } from "react-helmet-async"; // Changed import to react-helmet-async
+import { Helmet } from "react-helmet-async";
 import { 
   ArrowRight, Calendar, BarChart3, CreditCard, 
-  Users, CheckCircle2, Loader2, MapPin 
+  Users, CheckCircle2, Loader2, MapPin, AlertCircle, CheckCircle
 } from "lucide-react";
+import HCaptcha from '@hcaptcha/react-hcaptcha';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client"; // Updated correct path to supabase client
 
 // Import images with optimization references
 import backgroundImage from "@/assets/background.jpeg";
 import softwareImage from "@/assets/sofware.png";
+
+// Environment detection
+const IS_DEV = import.meta.env.DEV === true || window.location.hostname === 'localhost';
+
+// Get environment variables with fallbacks
+const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
 
 // SEO keywords for the page
 const SEO_KEYWORDS = "rv parks for sale, campground reservation software, rv park investment, campground management software, buy rv park, sell rv park";
@@ -25,6 +35,15 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  // Estados para el formulario de suscripción
+  const [email, setEmail] = useState("");
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
+  const captchaRef = useRef<HCaptcha | null>(null);
+  const { toast } = useToast();
   
   // Cargar listings aprobados cuando el componente se monta
   useEffect(() => {
@@ -55,8 +74,121 @@ const Index = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Resetear errores cuando cambia el email
+  useEffect(() => {
+    if (formError) {
+      setFormError(null);
+    }
+  }, [email, captchaToken]);
+
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
+  };
+
+  // Handle hCaptcha verification
+  const handleVerificationSuccess = (token: string) => {
+    setCaptchaToken(token);
+  };
+
+  const handleCaptchaError = () => {
+    setFormError("Captcha verification failed. Please try again.");
+  };
+  
+  // Validar email
+  const isValidEmail = (email: string): boolean => {
+    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email.toLowerCase());
+  };
+
+  // Submit subscription
+  const handleSubscribe = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // Reset states
+    setFormError(null);
+    
+    // Validate email
+    if (!email || !isValidEmail(email)) {
+      setFormError("Please enter a valid email address");
+      return;
+    }
+    
+    // Validate captcha
+    if (!captchaToken) {
+      setFormError("Please complete the security verification");
+      return;
+    }
+    
+    setIsSubmittingEmail(true);
+    
+    try {
+      // Check if email already exists
+      const { data: existingEmails, error: checkError } = await supabase
+        .from('email_subscriptions')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
+        throw new Error("Error checking subscription status");
+      }
+      
+      if (existingEmails) {
+        // Email already exists, update is_active to true if it was false
+        const { error: updateError } = await supabase
+          .from('email_subscriptions')
+          .update({ is_active: true })
+          .eq('email', email.toLowerCase());
+        
+        if (updateError) throw updateError;
+        
+        toast({
+          title: "Already subscribed",
+          description: "Your email is already in our subscription list.",
+        });
+      } else {
+        // Insert new subscription
+        const { error: insertError } = await supabase
+          .from('email_subscriptions')
+          .insert([
+            { 
+              email: email.toLowerCase(), 
+              is_active: true,
+              created_at: new Date().toISOString()
+            }
+          ]);
+        
+        if (insertError) throw insertError;
+        
+        // Show success
+        setSubscriptionSuccess(true);
+        toast({
+          title: "Subscribed successfully!",
+          description: "Thank you for subscribing to our newsletter.",
+        });
+      }
+      
+      // Reset form
+      setEmail("");
+      setCaptchaToken(null);
+      captchaRef.current?.resetCaptcha();
+      
+    } catch (error) {
+      console.error("Subscription error:", error);
+      setFormError("There was a problem processing your subscription. Please try again.");
+      
+      // Reset captcha on error
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
+      
+      toast({
+        variant: "destructive",
+        title: "Subscription failed",
+        description: "There was a problem with your subscription. Please try again.",
+      });
+    } finally {
+      setIsSubmittingEmail(false);
+    }
   };
   
   // Array of FAQ items for easier management
@@ -657,7 +789,7 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Newsletter Section */}
+      {/* Newsletter Section with HCaptcha */}
       <section className="py-16 bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] relative overflow-hidden">
         {/* Moving background elements */}
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-xl"></div>
@@ -676,19 +808,80 @@ const Index = () => {
               Get the latest RV park listings and industry insights delivered to your inbox.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50"
-                aria-label="Email address for newsletter"
-              />
-              <Button 
-                className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all"
-              >
-                Subscribe
-              </Button>
-            </div>
+            {subscriptionSuccess ? (
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-lg mx-auto">
+                <div className="flex flex-col items-center">
+                  <CheckCircle className="h-16 w-16 text-white mb-4" />
+                  <h3 className="text-2xl font-semibold mb-2">Thank You!</h3>
+                  <p className="mb-6">
+                    Your subscription has been confirmed. You'll now receive the latest updates on RV park listings and industry insights.
+                  </p>
+                  <Button 
+                    onClick={() => setSubscriptionSuccess(false)}
+                    className="bg-white text-[#f74f4f] hover:bg-gray-100"
+                  >
+                    Return to Form
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="max-w-lg mx-auto">
+                {formError && (
+                  <div className="mb-4 p-3 bg-white/10 backdrop-blur-sm rounded-md text-left flex items-start">
+                    <AlertCircle className="h-5 w-5 text-white mr-2 mt-0.5 flex-shrink-0" />
+                    <span className="text-white text-sm">{formError}</span>
+                  </div>
+                )}
+                
+                <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50
+                      ${!email && formError ? "border-red-300" : ""}`}
+                    aria-label="Email address for newsletter"
+                    disabled={isSubmittingEmail}
+                  />
+                  <Button 
+                    type="submit"
+                    className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all"
+                    disabled={isSubmittingEmail || !captchaToken}
+                  >
+                    {isSubmittingEmail ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Subscribing...
+                      </>
+                    ) : "Subscribe"}
+                  </Button>
+                </div>
+                
+                {/* Security verification section */}
+                <div className={`flex justify-center py-2 mb-4 ${!captchaToken && formError ? "bg-white/10 backdrop-blur-sm rounded-md p-2" : ""}`}>
+                  {HCAPTCHA_SITE_KEY ? (
+                    <HCaptcha
+                      ref={captchaRef}
+                      sitekey={HCAPTCHA_SITE_KEY}
+                      onVerify={handleVerificationSuccess}
+                      onError={handleCaptchaError}
+                      onExpire={() => setCaptchaToken(null)}
+                      theme="light"
+                    />
+                  ) : (
+                    <div className="text-sm text-white p-2 bg-white/10 backdrop-blur-sm rounded-md">
+                      Security verification not configured. Please contact support.
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-xs text-white/70 mt-4">
+                  By subscribing, you agree to receive marketing emails from RoverPass. 
+                  You can unsubscribe at any time.
+                </p>
+              </form>
+            )}
           </motion.div>
         </div>
       </section>
