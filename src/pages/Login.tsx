@@ -32,16 +32,9 @@ const Login = () => {
       setFormError(null);
     }
   }, [email, password, captchaToken, formError]);
-  
-  // Handle redirection after successful authentication
+    // Handle redirection after successful authentication
   useEffect(() => {
     if (!user || authLoading) return;
-    
-    // This will run when the user authenticates successfully
-    console.log('[Login] User authenticated, preparing redirect');
-    console.log('[Login] Roles:', roles);
-    console.log('[Login] Is admin:', isAdmin);
-    console.log('[Login] Permissions:', permissions);
     
     // Short delay to ensure permissions have been processed
     const redirectTimeout = setTimeout(() => {
@@ -57,9 +50,7 @@ const Login = () => {
       } else if (hasPermission('create_listing')) {
         destination = '/broker/dashboard';
       }
-      
-      console.log(`[Login] Redirecting to: ${destination}`);
-      navigate(destination, { replace: true });
+        navigate(destination, { replace: true });
       
       // Welcome message
       toast({
@@ -70,15 +61,12 @@ const Login = () => {
     
     return () => clearTimeout(redirectTimeout);
   }, [user, authLoading, isAdmin, roles, permissions, hasPermission, navigate, location.state, toast]);
-  
-  // Handle hCaptcha verification
+    // Handle hCaptcha verification
   const handleVerificationSuccess = (token: string) => {
-    console.log('[Login] hCaptcha verification successful');
     setCaptchaToken(token);
   };
 
   const handleCaptchaError = () => {
-    console.error('[Login] hCaptcha verification failed');
     setFormError("Captcha verification failed. Please try again.");
     
     toast({
@@ -114,8 +102,7 @@ const Login = () => {
     
     return true;
   };
-  
-  const handleLogin = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Clear any previous errors
@@ -129,14 +116,9 @@ const Login = () => {
     setLoading(true);
 
     try {
-      console.log(`[Login] Attempting to sign in with email: ${email}`);
       
       // Pass the captcha token to the signIn function
-      const { error } = await signIn(email, password, captchaToken);
-
-      if (error) {
-        console.error('[Login] Authentication error:', error);
-        
+      const { error } = await signIn(email, password, captchaToken);      if (error) {
         // Reset captcha if authentication fails
         captchaRef.current?.resetCaptcha();
         setCaptchaToken(null);
@@ -156,15 +138,10 @@ const Login = () => {
         });
         
         setLoading(false);
-        return;
-      }
+        return;      }
       
-      console.log('[Login] Authentication successful');
       // Redirection is handled by useEffect above
-      
-    } catch (error: any) {
-      console.error('[Login] Unexpected error:', error);
-      
+        } catch (error: any) {
       // Reset captcha on error
       captchaRef.current?.resetCaptcha();
       setCaptchaToken(null);

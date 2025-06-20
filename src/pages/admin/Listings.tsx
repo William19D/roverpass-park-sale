@@ -175,9 +175,7 @@ const AdminListings = () => {
         } else {
           setListings([]);
           setFilteredListings([]);
-        }
-      } catch (error) {
-        console.error('Error fetching listings:', error);
+        }      } catch (error) {
         toast({
           title: "Error",
           description: "Failed to load listings",
@@ -275,9 +273,7 @@ const AdminListings = () => {
         description: `Listing has been ${newStatus === 'approved' ? 'approved' : 
                                         newStatus === 'rejected' ? 'rejected' : 
                                         'marked as pending'}`,
-      });
-    } catch (error) {
-      console.error('Error updating status:', error);
+      });    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update listing status",
@@ -323,9 +319,7 @@ const AdminListings = () => {
       toast({
         title: "Listing Deleted",
         description: "The listing has been permanently deleted",
-      });
-    } catch (error) {
-      console.error('Error deleting listing:', error);
+      });    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to delete listing",

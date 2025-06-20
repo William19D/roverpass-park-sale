@@ -19,22 +19,15 @@ const ResetPassword = () => {
   const [resetComplete, setResetComplete] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
   // Este useEffect maneja el procesamiento del token y la verificación
   useEffect(() => {
     const processHashAndValidateSession = async () => {
       try {
-        console.log("Initializing reset password page");
-        
         // Importante: Supabase automáticamente procesa los parámetros del hash
         // Solo necesitamos verificar si tenemos una sesión válida después
         const { data, error } = await supabase.auth.getSession();
         
-        console.log("Session data:", data);
-        console.log("Session error:", error);
-        
         if (error) {
-          console.error("Error getting session:", error);
           setTokenValid(false);
           toast({
             title: "Error",
@@ -42,19 +35,15 @@ const ResetPassword = () => {
             variant: "destructive",
           });
         } else if (data.session) {
-          console.log("Valid session found");
           setTokenValid(true);
         } else {
-          console.log("No session found");
           setTokenValid(false);
           toast({
             title: "Link Expired",
             description: "This password reset link appears to be invalid or has expired.",
             variant: "destructive",
           });
-        }
-      } catch (err) {
-        console.error("Session validation error:", err);
+        }      } catch (err) {
         setTokenValid(false);
       } finally {
         setValidatingToken(false);
@@ -97,24 +86,20 @@ const ResetPassword = () => {
       });
       return;
     }
-    
-    setLoading(true);
+      setLoading(true);
     
     try {
-      console.log("Updating password...");
       const { error } = await supabase.auth.updateUser({
         password: password
       });
       
       if (error) {
-        console.error("Password update error:", error);
         toast({
           title: "Update Failed",
           description: error.message || "Could not update password. Please try again.",
           variant: "destructive",
         });
       } else {
-        console.log("Password updated successfully");
         setResetComplete(true);
         toast({
           title: "Success!",
@@ -123,9 +108,7 @@ const ResetPassword = () => {
         
         // Redirigir al login después de un breve retraso
         setTimeout(() => navigate("/login"), 3000);
-      }
-    } catch (error) {
-      console.error("Password update error:", error);
+      }    } catch (error) {
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -136,12 +119,6 @@ const ResetPassword = () => {
     }
   };
 
-  // Función de renderizado básico para probar si el componente está funcionando
-  console.log("Rendering ResetPassword component. State:", {
-    validatingToken,
-    tokenValid,
-    resetComplete
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

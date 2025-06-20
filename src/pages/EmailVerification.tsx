@@ -1,9 +1,8 @@
-
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Header, HeaderSpacer } from "@/components/layout/Header";
-import { Mail, CheckCircle2 } from "lucide-react";
+import { Mail, CheckCircle2, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 const EmailVerification = () => {
@@ -74,7 +73,16 @@ const EmailVerification = () => {
             </div>
 
             <div className="text-center text-sm text-gray-500 mt-4">
-              <p>Didn't receive an email? Contact support for assistance.</p>
+              <p>
+                Didn't receive an email? {" "}
+                <Link 
+                  to="/support" 
+                  className="text-[#f74f4f] hover:text-[#e43c3c] hover:underline font-medium inline-flex items-center"
+                >
+                  Contact support for assistance
+                  <HelpCircle className="ml-1 h-3 w-3" />
+                </Link>
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -48,15 +48,13 @@ const Index = () => {
   // Cargar listings aprobados cuando el componente se monta
   useEffect(() => {
     const loadApprovedListings = async () => {
-      setIsLoading(true);
-      try {
+      setIsLoading(true);      try {
         // Esta función ya está filtrando por status 'approved' en la API
         const approvedFeaturedListings = await getFeaturedListings();
         // Only take the last 3 listings
         setFeaturedListings(approvedFeaturedListings.slice(0, 3));
       } catch (error) {
         // No mostramos detalles del error que podrían contener información sensible
-        console.error("Error loading listings");
       } finally {
         setIsLoading(false);
       }
@@ -84,7 +82,6 @@ const Index = () => {
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
-
   // Handle hCaptcha verification
   const handleVerificationSuccess = (token: string) => {
     setCaptchaToken(token);
@@ -120,8 +117,7 @@ const Index = () => {
     }
     
     setIsSubmittingEmail(true);
-    
-    try {
+      try {
       // Check if email already exists
       const { data: existingEmails, error: checkError } = await supabase
         .from('email_subscriptions')
@@ -172,9 +168,7 @@ const Index = () => {
       setEmail("");
       setCaptchaToken(null);
       captchaRef.current?.resetCaptcha();
-      
-    } catch (error) {
-      console.error("Subscription error:", error);
+        } catch (error) {
       setFormError("There was a problem processing your subscription. Please try again.");
       
       // Reset captcha on error

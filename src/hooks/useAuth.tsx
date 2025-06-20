@@ -41,15 +41,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-
   // Setup auth state listener
   useEffect(() => {
-    console.log('[Auth] Setting up auth state listener');
-    
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log(`[Auth] Auth state changed: ${event}`, currentSession?.user?.id);
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -66,17 +62,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         setLoading(false);
       }
-    );
-
-    // Get initial session
+    );    // Get initial session
     const initAuth = async () => {
-      console.log('[Auth] Initializing auth state');
-      
       try {
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('[Auth] Error getting session:', error);
           setLoading(false);
           return;
         }
@@ -86,9 +77,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (initialSession?.user) {
           await getUserRoleAndPermissions(initialSession);
-        }
-      } catch (err) {
-        console.error('[Auth] Error during initialization:', err);
+        }      } catch (err) {
       } finally {
         setLoading(false);
       }
@@ -98,15 +87,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Cleanup subscription on unmount
     return () => {
-      console.log('[Auth] Cleaning up auth subscription');
       subscription?.unsubscribe();
     };
   }, []);
-
   // Fetch user role and permissions using the edge function
   const getUserRoleAndPermissions = async (currentSession: Session) => {
     try {
-      console.log('[Auth] Fetching user role and permissions');
       
       // Use edge function if available, otherwise fallback to direct DB query
       if (AUTH_API_URL) {
@@ -126,21 +112,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
 
         const data = await response.json();
-        
-        // Set user role
+          // Set user role
         const userRole = data.role;
         setRoles([userRole]);
         const adminStatus = userRole === 'admin';
         setIsAdmin(adminStatus);
-        
-        console.log(`[Auth] User role: ${userRole}, isAdmin: ${adminStatus}`);
 
         // Then fetch permissions for this role
         await getUserPermissions(currentSession, userRole);
-        
-      } else {
-        console.warn('[Auth] Edge function URL not available. Using direct query.');
-        
+          } else {
         // Fallback using direct DB query if edge function is not available
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
@@ -171,34 +151,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           } else {
             throw roleError;
           }
-        }
-
-        const userRole = roleData?.role || 'user';
+        }        const userRole = roleData?.role || 'user';
         setRoles([userRole]);
         const adminStatus = userRole === 'admin';
         setIsAdmin(adminStatus);
         
-        console.log(`[Auth] User role (direct): ${userRole}, isAdmin: ${adminStatus}`);
-        
         // Get direct permissions
         await fetchDirectPermissions(userRole);
-      }
-    } catch (error) {
-      console.error('[Auth] Error fetching user role:', error);
-      
+      }    } catch (error) {
       // On error, check for admin status in user metadata as fallback
       try {
         // Check if user has admin role in metadata
         const userMetadata = currentSession.user.user_metadata;
         if (userMetadata && userMetadata.role === 'admin') {
-          console.log('[Auth] Admin role found in metadata');
           setRoles(['admin']);
           setIsAdmin(true);
           setPermissions(['*']); // Admin has all permissions
           return;
-        }
-      } catch (metadataError) {
-        console.error('[Auth] Error checking metadata:', metadataError);
+        }      } catch (metadataError) {
       }
       
       // Set default role on error
@@ -224,17 +194,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (permError) {
         throw permError;
-      }
-
-      if (permData && Array.isArray(permData)) {
+      }      if (permData && Array.isArray(permData)) {
         const permsList = permData.map(p => p.permission);
         setPermissions(permsList);
-        console.log(`[Auth] User permissions: ${permsList.join(', ')}`);
       } else {
         setPermissions([]);
-      }
-    } catch (error) {
-      console.error('[Auth] Error fetching direct permissions:', error);
+      }    } catch (error) {
       setPermissions([]);
     }
   };
@@ -261,35 +226,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               action: 'get_role_permissions',
               role
             })
-          });
-
-          if (!response.ok) {
-            console.error(`[Auth] Error getting role permissions: ${response.status}`);
+          });          if (!response.ok) {
             // Fall back to checking specific permissions
             await fallbackGetPermissions(currentSession, role);
             return;
           }
 
           const data = await response.json();
-          
-          if (data.permissions && Array.isArray(data.permissions)) {
+            if (data.permissions && Array.isArray(data.permissions)) {
             setPermissions(data.permissions);
-            console.log(`[Auth] User permissions from API: ${data.permissions.join(', ')}`);
           } else {
-            console.warn('[Auth] No permissions returned from API, falling back to direct query');
             await fetchDirectPermissions(role);
-          }
-        } catch (error) {
-          console.error('[Auth] Error fetching role permissions:', error);
+          }        } catch (error) {
           // Fall back to direct method
           await fallbackGetPermissions(currentSession, role);
         }
       } else {
         // No edge function, use direct query
         await fetchDirectPermissions(role);
-      }
-    } catch (error) {
-      console.error('[Auth] Error in getUserPermissions:', error);
+      }    } catch (error) {
       setPermissions([]);
     }
   };
@@ -320,29 +275,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               setPermissions(['view_admin_dashboard']);
               return;
             }
-          }
-        } catch (error) {
-          console.error('[Auth] Error checking specific permission:', error);
+          }        } catch (error) {
         }
       }
       
       // Fall back to direct DB query for all permissions
       await fetchDirectPermissions(role);
     } catch (error) {
-      console.error('[Auth] Error in fallback permission check:', error);
       setPermissions([]);
     }
   };
-
   // Function to manually refresh user's role and permissions
   const refreshPermissions = async (): Promise<Role | null> => {
     try {
       if (!session) {
-        console.warn('[Auth] Cannot refresh permissions: No active session');
         return null;
       }
-      
-      console.log('[Auth] Manually refreshing permissions');
       
       // First ensure we have latest session
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
@@ -358,22 +306,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .select('role')
         .eq('user_id', currentSession.user.id)
         .single();
-      
-      if (roleError) {
-        if (roleError.code !== 'PGRST116') {
-          console.error('[Auth] Error fetching role during refresh:', roleError);
-        }
+        if (roleError) {
         // No role found
         setRoles(['user']);
         setIsAdmin(false);
         await fetchDirectPermissions('user');
         return 'user';
       }
-      
-      const userRole = roleData?.role || 'user';
+        const userRole = roleData?.role || 'user';
       const adminStatus = userRole === 'admin';
-      
-      console.log(`[Auth] Refreshed role: ${userRole}, isAdmin: ${adminStatus}`);
       
       // Update state with fetched values
       setRoles([userRole]);
@@ -383,21 +324,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await fetchDirectPermissions(userRole);
       
       return userRole;
-      
-    } catch (error) {
-      console.error('[Auth] Error refreshing permissions:', error);
+        } catch (error) {
       return null;
     }
   };
-
   // Sign in with email and password
   const signIn = async (email: string, password: string, captchaToken: string | null = null) => {
     try {
-      console.log('[Auth] Attempting sign in for:', email);
-      
-      if (AUTH_API_URL && captchaToken) {
+        if (AUTH_API_URL && captchaToken) {
         // Use edge function for login with captcha
-        console.log('[Auth] Using edge function for login with captcha');
         const response = await fetch(AUTH_API_URL, {
           method: 'POST',
           headers: {
@@ -412,15 +347,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         });
 
         const data = await response.json();
-        
-        if (!response.ok) {
-          console.error('[Auth] Edge function login error:', data.error);
+          if (!response.ok) {
           return { error: new Error(data.error || 'Failed to sign in') };
-        }
-
-        // Set the session in Supabase
+        }        // Set the session in Supabase
         if (data.session) {
-          console.log('[Auth] Setting session from edge function response');
           await supabase.auth.setSession({
             access_token: data.session.access_token,
             refresh_token: data.session.refresh_token
@@ -429,21 +359,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // The auth state change will trigger role fetching
           return {};
         }
-        
-      } else {
+          } else {
         // Fallback to direct Supabase auth
-        console.log('[Auth] Using direct Supabase auth');
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
-        });
-
-        if (error) {
-          console.error('[Auth] Direct login error:', error.message);
+        });        if (error) {
           return { error };
         }
-        
-        console.log('[Auth] Login successful, user ID:', data.user?.id);
         
         // Explicitly fetch roles and permissions now for immediate access
         if (data.session) {
@@ -452,19 +375,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         return {};
       }
-      
-    } catch (error) {
-      console.error('[Auth] Sign in error:', error);
+        } catch (error) {
       return { error: error as Error };
     }
     
     return {};
   };
-
   // Sign out
   const signOut = async () => {
     try {
-      console.log('[Auth] Signing out user');
       
       if (AUTH_API_URL && session?.access_token) {
         // Use edge function for logout
@@ -476,9 +395,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           },
           body: JSON.stringify({
             action: 'logout'
-          })
-        }).catch(error => {
-          console.error('[Auth] Error calling logout endpoint:', error);
+          })        }).catch(error => {
         });
       }
       
@@ -491,9 +408,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setRoles([]);
       setPermissions([]);
       setIsAdmin(false);
-      
-    } catch (error) {
-      console.error('[Auth] Sign out error:', error);
+        } catch (error) {
     }
   };
 
@@ -521,9 +436,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       
       return { success: true };
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      throw error;
+    } catch (error) {      throw error;
     }
   };
 

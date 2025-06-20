@@ -1,10 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "@/components/layout/Footer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Header } from "@/components/layout/Header";
 import { 
   Card, 
   CardContent, 
@@ -12,35 +9,12 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2, Send, HelpCircle, ChevronRight, AlertCircle } from "lucide-react";
+import { HelpCircle, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { supabase } from "@/lib/supabaseClient";
-import HCaptcha from '@hcaptcha/react-hcaptcha';
-
-// Environment detection
-const IS_DEV = import.meta.env.DEV === true || window.location.hostname === 'localhost';
-
-// Get environment variables with fallbacks
-const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
-
-// Define topics for the dropdown
-const supportTopics = [
-  { value: "account", label: "Account Issues" },
-  { value: "listing", label: "Listing Problems" },
-  { value: "payment", label: "Payment Questions" },
-  { value: "suggestion", label: "Feature Suggestions" },
-  { value: "bug", label: "Bug Reports" },
-  { value: "other", label: "Other" },
-];
+import { Helmet } from "react-helmet-async";
 
 // Define FAQs for the Support page
 const faqs = [
@@ -60,140 +34,117 @@ const faqs = [
     question: "How do I contact a seller?",
     answer: "On each listing page, you'll find a contact form that allows you to send a message directly to the property seller or broker."
   },
+  {
+    question: "Why was my listing rejected?",
+    answer: "Listings may be rejected if they don't meet our content guidelines or contain incomplete information. You'll receive an email with specific reasons and instructions on how to resubmit."
+  },
+  {
+    question: "How do I manage inquiries about my RV park?",
+    answer: "All inquiries about your properties can be found in your dashboard under the 'Inquiries' tab. You can respond directly to potential buyers from there."
+  }
 ];
 
 const Support = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  // Form states
-  const [name, setName] = useState(user ? `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() : "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [topic, setTopic] = useState("");
-  const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const captchaRef = useRef<HCaptcha | null>(null);
-  
-  // Expanded FAQ state
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [formLoaded, setFormLoaded] = useState(false);
+  const [formLoadError, setFormLoadError] = useState(false);
+  const hubspotContainerRef = useRef<HTMLDivElement>(null);
 
-  // Check if hCaptcha site key is configured
+  // Load HubSpot script and initialize form
   useEffect(() => {
-    if (!HCAPTCHA_SITE_KEY) {
-      setFormError("Security verification is not properly configured. Please contact support.");
-    }
-  }, []);
-  
-  // Clear form error when inputs change
-  useEffect(() => {
-    if (formError) {
-      setFormError(null);
-    }
-  }, [email, name, topic, message, captchaToken, formError]);
+    let scriptTimeout: NodeJS.Timeout;
+    let isMounted = true;
+
+    const loadHubspotForm = () => {
+      // Load the HubSpot script
+      const script = document.createElement('script');
+      script.src = "//js.hsforms.net/forms/embed/v2.js";
+      script.charset = "utf-8";
+      script.type = "text/javascript";
+      script.async = true;
+        // Set a timeout to detect if the script fails to load
+      scriptTimeout = setTimeout(() => {
+        if (isMounted && !window.hbspt) {
+          setFormLoadError(true);
+        }
+      }, 10000); // 10 seconds timeout
+      
+      // Once the script loads, initialize the form
+      script.onload = () => {
+        clearTimeout(scriptTimeout);
+        
+        if (isMounted && window.hbspt && hubspotContainerRef.current) {
+          try {
+            // Prefill data if the user is logged in
+            const context = user ? {
+              pageContext: {
+                email: user.email,
+                // Add other available user information here
+                ...user.user_metadata
+              }
+            } : {};
+            
+            window.hbspt.forms.create({
+              portalId: "4867863",
+              formId: "35c19985-31ed-4770-87bd-3acbfd1cb24b",
+              region: "na1",
+              target: "#hubspot-form-container",
+              ...context,
+              onFormSubmit: () => {
+                if (isMounted) {
+                  toast({
+                    title: "Message Sent Successfully",
+                    description: "We'll get back to you as soon as possible",
+                  });
+                }
+              }
+            });
+            
+            setFormLoaded(true);          } catch (error) {
+            if (isMounted) {
+              setFormLoadError(true);
+            }
+          }
+        }
+      };
+        // Handle script load error
+      script.onerror = () => {
+        clearTimeout(scriptTimeout);
+        if (isMounted) {
+          setFormLoadError(true);
+        }
+      };
+      
+      document.body.appendChild(script);
+      
+      return () => {
+        clearTimeout(scriptTimeout);
+        isMounted = false;
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    };
+    
+    loadHubspotForm();
+  }, [user, toast]);
   
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
 
-  // Handle hCaptcha verification
-  const handleVerificationSuccess = (token: string) => {
-    setCaptchaToken(token);
-  };
-
-  const handleCaptchaError = () => {
-    setFormError("Captcha verification failed. Please try again.");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Clear previous errors
-    setFormError(null);
-
-    // Validate form
-    if (!name.trim()) {
-      setFormError("Name is required");
-      return;
-    }
-    
-    if (!email.trim() || !email.includes('@')) {
-      setFormError("Valid email is required");
-      return;
-    }
-    
-    if (!topic) {
-      setFormError("Topic is required");
-      return;
-    }
-    
-    if (!message.trim() || message.length < 10) {
-      setFormError("Please provide more details in your message (at least 10 characters)");
-      return;
-    }
-
-    // Validate captcha
-    if (!captchaToken) {
-      setFormError("Please complete the security verification");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Create a support ticket in Supabase
-      const { error } = await supabase
-        .from('support_tickets')
-        .insert([
-          { 
-            name,
-            email,
-            topic,
-            message,
-            user_id: user?.id || null,
-            status: 'new',
-            captcha_token: captchaToken // Include captcha token
-          },
-        ]);
-      
-      if (error) throw error;
-      
-      // Show success message
-      toast({
-        title: "Message sent successfully",
-        description: "We'll get back to you as soon as possible",
-      });
-      
-      // Reset form after successful submission
-      if (!user) {
-        setName("");
-        setEmail("");
-      }
-      setTopic("");
-      setMessage("");
-      setCaptchaToken(null);
-      captchaRef.current?.resetCaptcha();
-      
-    } catch (error) {
-      console.error('Error submitting support ticket:', error);
-      toast({
-        title: "Failed to send message",
-        description: "There was a problem sending your message. Please try again.",
-        variant: "destructive",
-      });
-      
-      // Reset captcha on error
-      captchaRef.current?.resetCaptcha();
-      setCaptchaToken(null);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto py-12 px-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Helmet>
+        <title>Support - RoverPass</title>
+        <meta name="description" content="Get help with RoverPass. Contact our support team for assistance with listings, account issues, or general questions." />
+      </Helmet>
+      
+      <Header />
+      
+      <div className="container mx-auto py-12 px-4 flex-grow">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -215,114 +166,37 @@ const Support = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {formError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                    <span className="text-red-800 text-sm">{formError}</span>
-                  </div>
-                )}
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Your Name</Label>
-                      <Input 
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your name"
-                        disabled={isSubmitting || !!user}
-                        className={!name.trim() && formError ? "border-red-300" : ""}
-                      />
+                {/* HubSpot Form Container */}
+                <div 
+                  id="hubspot-form-container" 
+                  ref={hubspotContainerRef}
+                  className="min-h-[400px]"
+                >
+                  {!formLoaded && !formLoadError && (
+                    <div className="text-center py-12">
+                      <Loader2 className="h-10 w-10 animate-spin mx-auto text-[#f74f4f]" />
+                      <p className="mt-4 text-gray-500">Loading support form...</p>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input 
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        disabled={isSubmitting || !!user}
-                        className={(!email.trim() || !email.includes('@')) && formError ? "border-red-300" : ""}
-                      />
-                    </div>
-                  </div>
+                  )}
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="topic">Topic</Label>
-                    <Select value={topic} onValueChange={setTopic} disabled={isSubmitting}>
-                      <SelectTrigger 
-                        id="topic"
-                        className={!topic && formError ? "border-red-300" : ""}
+                  {formLoadError && (
+                    <div className="text-center py-12 bg-red-50 rounded-lg border border-red-100">
+                      <AlertCircle className="h-10 w-10 mx-auto text-red-500 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Form Could Not Be Loaded</h3>
+                      <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                        We're having trouble loading our support form. Please try refreshing the page or contact us via email.
+                      </p>
+                      <Button 
+                        asChild
+                        className="bg-[#f74f4f] hover:bg-[#e43c3c] mt-2"
                       >
-                        <SelectValue placeholder="Select a topic" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {supportTopics.map((topic) => (
-                          <SelectItem key={topic.value} value={topic.value}>
-                            {topic.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Your Message</Label>
-                    <Textarea 
-                      id="message"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Please describe your issue or question in detail"
-                      rows={6}
-                      disabled={isSubmitting}
-                      className={(!message.trim() || message.length < 10) && formError ? "border-red-300" : ""}
-                    />
-                  </div>
-                  
-                  {/* Security verification section */}
-                  <div>
-                    <Label className="block mb-2">Security Verification</Label>
-                    <div className={`flex justify-center py-2 ${!captchaToken && formError ? "border border-red-300 rounded-md" : ""}`}>
-                      {HCAPTCHA_SITE_KEY ? (
-                        <HCaptcha
-                          ref={captchaRef}
-                          sitekey={HCAPTCHA_SITE_KEY}
-                          onVerify={handleVerificationSuccess}
-                          onError={handleCaptchaError}
-                          onExpire={() => setCaptchaToken(null)}
-                          theme="light"
-                        />
-                      ) : (
-                        <div className="text-sm text-red-500 p-2">
-                          Security verification not configured. Please contact support.
-                        </div>
-                      )}
+                        <a href="mailto:support@roverpass.com">
+                          Contact via Email
+                        </a>
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
-                      disabled={isSubmitting || !captchaToken}
-                      className="bg-[#f74f4f] hover:bg-[#e43c3c]"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Send Message
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
+                  )}
+                </div>
               </CardContent>
             </Card>
             
@@ -344,6 +218,8 @@ const Support = () => {
                         expandedFaq === index ? 'bg-[#f74f4f]/5' : 'hover:bg-gray-50'
                       }`}
                       onClick={() => toggleFaq(index)}
+                      aria-expanded={expandedFaq === index}
+                      aria-controls={`faq-answer-${index}`}
                     >
                       <span className={`font-medium ${expandedFaq === index ? 'text-[#f74f4f]' : ''}`}>
                         {faq.question}
@@ -355,9 +231,11 @@ const Support = () => {
                       />
                     </button>
                     <div
+                      id={`faq-answer-${index}`}
                       className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        expandedFaq === index ? "max-h-40" : "max-h-0"
+                        expandedFaq === index ? "max-h-64" : "max-h-0"
                       }`}
+                      aria-hidden={expandedFaq !== index}
                     >
                       <div className="p-4 bg-gray-50 text-muted-foreground">
                         {faq.answer}
@@ -380,9 +258,28 @@ const Support = () => {
           </div>
         </motion.div>
       </div>
+      
       <Footer />
     </div>
   );
 };
+
+// Declare HubSpot types for TypeScript
+declare global {
+  interface Window {
+    hbspt: {
+      forms: {
+        create: (config: {
+          portalId: string;
+          formId: string;
+          region: string;
+          target: string;
+          pageContext?: any;
+          onFormSubmit?: () => void;
+        }) => void;
+      };
+    };
+  }
+}
 
 export default Support;
