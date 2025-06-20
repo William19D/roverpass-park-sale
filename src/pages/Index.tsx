@@ -17,8 +17,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 // Import images with optimization references
-import backgroundImage from "@/assets/background.jpeg";
-import softwareImage from "@/assets/sofware.png";
+import backgroundImage from "@/assets/background.webp";
+import softwareImage from "@/assets/sofware.webp";
 
 // Environment detection
 const IS_DEV = import.meta.env.DEV === true || window.location.hostname === 'localhost';
