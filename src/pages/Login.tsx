@@ -52,6 +52,7 @@ const Login = () => {
       if (location.state?.from?.pathname) {
         destination = location.state.from.pathname;
       } else if (isAdmin || hasPermission('view_admin_dashboard')) {
+        // Always redirect admin to dashboard on login
         destination = '/admin/dashboard';
       } else if (hasPermission('create_listing')) {
         destination = '/broker/dashboard';

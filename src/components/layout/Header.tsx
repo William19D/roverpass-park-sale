@@ -10,7 +10,8 @@ import {
   PlusCircle,
   LucideIcon,
   Settings,
-  ChevronDown
+  ChevronDown,
+  LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -215,6 +216,7 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
   setMenuOpen: (isOpen: boolean) => void;
 }) => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth(); // Get isAdmin status from auth context
   
   // Función para obtener nombre de usuario de diversas fuentes
   const userName = useMemo(() => {
@@ -325,6 +327,17 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
               <User className="h-4 w-4 mr-2" />
               My Profile
             </a>
+            {/* Add Admin Dashboard link for admin users in mobile menu */}
+            {isAdmin && (
+              <a 
+                href="/admin/dashboard/" 
+                onClick={(e) => handleNavigation(e, "/admin/dashboard")}
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Admin Dashboard
+              </a>
+            )}
             <Button 
               variant="outline" 
               className="w-full"
@@ -372,6 +385,20 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
                   <Settings className="h-4 w-4 mr-2" />
                   <span>Dashboard</span>
                 </DropdownMenuItem>
+                
+                {/* Add Admin Dashboard link for admin users */
+                isAdmin && (
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/admin/dashboard/");
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    <span>Admin Dashboard</span>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem 

@@ -7,7 +7,7 @@ import {
 // Remove collapsed prop from interface
 interface AdminSidebarProps {}
 
-// Define admin navigation items - only Dashboard
+// Define admin navigation items - removed Main Site link
 const adminNavItems = [
   {
     title: "Dashboard",
@@ -36,7 +36,7 @@ export function AdminSidebar({}: AdminSidebarProps) {
               {adminNavItems.map((item) => {
                 const isActive = location.pathname === item.href || 
                                 location.pathname.startsWith(item.href);
-                                
+                
                 return (
                   <li key={item.href}>
                     <Link

@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Home,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -43,11 +45,19 @@ export function AdminHeader({}: AdminHeaderProps) {
     navigate("/");
   };
 
+  // Improved home navigation that reliably takes you to the homepage
+  const goToHomePage = () => {
+    // Set a flag to indicate intentional navigation to homepage
+    sessionStorage.setItem('intentionalHomeNavigation', 'true');
+    
+    // Use direct browser navigation to ensure we get a clean page load
+    window.location.href = '/';
+  };
+
   return (
     <header className="fixed top-0 z-40 bg-white border-b border-gray-200 h-16 transition-all duration-300 left-64 right-0">
       <div className="h-full px-4 flex items-center justify-between">
         <div className="flex items-center">
-          {/* Hamburger menu button removed */}
           <h2 className="text-lg font-semibold">
             Admin Panel
           </h2>
@@ -68,6 +78,26 @@ export function AdminHeader({}: AdminHeaderProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Admin Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              {/* Homepage navigation item using improved function */}
+              <DropdownMenuItem 
+                onClick={goToHomePage}
+                className="cursor-pointer"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Go to Homepage
+              </DropdownMenuItem>
+              
+              {/* Profile navigation item */}
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile/')}
+                className="cursor-pointer"
+              >
+                <User className="h-4 w-4 mr-2" />
+                My Profile
+              </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={handleSignOut}
