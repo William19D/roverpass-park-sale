@@ -35,7 +35,6 @@ const Index = () => {
   const [scrolled, setScrolled] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
-  // Subscription form state
   const [email, setEmail] = useState("");
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);

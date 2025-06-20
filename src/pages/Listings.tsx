@@ -12,7 +12,7 @@ import {
   SlidersHorizontal, Save, Clock, Star, Percent, 
   Users, DollarSign, Calendar, Filter, ChevronDown,
   BarChart3, Zap, Building, Home, AlertCircle,
-  Eye
+  Eye, Loader2, CheckCircle
 } from "lucide-react";
 import {
   Select,
@@ -52,9 +52,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RangeSlider } from "@/lib/RangeSlider";
 import * as SliderPrimitive from '@radix-ui/react-slider';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Updated to use ServiceListing type from the service
 type Listing = ServiceListing;
+
+// Environment detection
+const IS_DEV = import.meta.env.DEV === true || window.location.hostname === 'localhost';
+
+// Get environment variables with fallbacks
+const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
 
 // Extended filter options with additional filters
 interface ExtendedFilterOptions extends FilterOptions {
@@ -166,6 +175,15 @@ const Listings = () => {
   
   // Saved filter state
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
+
+  // Email subscription states (same as Index)
+  const [email, setEmail] = useState("");
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
+  const captchaRef = useRef<HCaptcha | null>(null);
+  const { toast } = useToast();
   
   const formatPercent = (value: number) => {
     return `${value}%`;
@@ -204,6 +222,14 @@ useEffect(() => {
   
   loadListings();
 }, []);  
+
+  // Reset email form errors when email changes
+  useEffect(() => {
+    if (formError) {
+      setFormError(null);
+    }
+  }, [email, captchaToken]);
+
   // Track active filters
   useEffect(() => {
     const active: string[] = [];
@@ -308,6 +334,109 @@ useEffect(() => {
     return () => clearTimeout(timeoutId);
     
   }, [filterOptions, extendedFilters, sortBy, search]);
+
+  // Email subscription functions (same as Index)
+  const handleVerificationSuccess = (token: string) => {
+    setCaptchaToken(token);
+  };
+
+  const handleCaptchaError = () => {
+    setFormError("Captcha verification failed. Please try again.");
+  };
+
+  const isValidEmail = (email: string): boolean => {
+    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email.toLowerCase());
+  };
+
+  const handleSubscribe = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // Reset states
+    setFormError(null);
+    
+    // Validate email
+    if (!email || !isValidEmail(email)) {
+      setFormError("Please enter a valid email address");
+      return;
+    }
+    
+    // Validate captcha
+    if (!captchaToken) {
+      setFormError("Please complete the security verification");
+      return;
+    }
+    
+    setIsSubmittingEmail(true);
+    
+    try {
+      // Check if email already exists
+      const { data: existingEmails, error: checkError } = await supabase
+        .from('email_subscriptions')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
+        throw new Error("Error checking subscription status");
+      }
+      
+      if (existingEmails) {
+        // Email already exists, update is_active to true if it was false
+        const { error: updateError } = await supabase
+          .from('email_subscriptions')
+          .update({ is_active: true })
+          .eq('email', email.toLowerCase());
+        
+        if (updateError) throw updateError;
+        
+        toast({
+          title: "Already subscribed",
+          description: "Your email is already in our buyer list.",
+        });
+      } else {
+        // Insert new subscription
+        const { error: insertError } = await supabase
+          .from('email_subscriptions')
+          .insert([
+            { 
+              email: email.toLowerCase(), 
+              is_active: true,
+              created_at: new Date().toISOString()
+            }
+          ]);
+        
+        if (insertError) throw insertError;
+        
+        // Show success
+        setSubscriptionSuccess(true);
+        toast({
+          title: "Successfully joined buyer list!",
+          description: "You'll now receive early access to new RV park listings.",
+        });
+      }
+      
+      // Reset form
+      setEmail("");
+      setCaptchaToken(null);
+      captchaRef.current?.resetCaptcha();
+      
+    } catch (error) {
+      setFormError("There was a problem processing your request. Please try again.");
+      
+      // Reset captcha on error
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
+      
+      toast({
+        variant: "destructive",
+        title: "Subscription failed",
+        description: "There was a problem joining the buyer list. Please try again.",
+      });
+    } finally {
+      setIsSubmittingEmail(false);
+    }
+  };
   
   const handleFilterChange = (updates: Partial<ExtendedFilterOptions>) => {
     setExtendedFilters(prev => ({
@@ -1238,7 +1367,7 @@ useEffect(() => {
                           placeholder="Min"
                           className="w-20 text-xs h-7"
                         />
-                        <span className="text-xs text-gray-500">to</span>
+                                                <span className="text-xs text-gray-500">to</span>
                         <Input
                           type="text"
                           value={priceMaxInput}
@@ -1351,7 +1480,7 @@ useEffect(() => {
                   <div className="w-48">
                     <Label className="text-sm font-medium mb-2 block">Number of Sites</Label>
                     <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                            <span>{extendedFilters.sitesMin} - {extendedFilters.sitesMax} sites</span>
+                      <span>{extendedFilters.sitesMin} - {extendedFilters.sitesMax} sites</span>
                     </div>
                     <RangeSlider
                       min={0}
@@ -1603,7 +1732,7 @@ useEffect(() => {
           )}
         </div>
 
-        {/* Enhanced CTA Section */}
+        {/* Enhanced CTA Section with Email Subscription (Updated like Index) */}
         <div className="bg-[#2d3748] py-12 mt-auto">
           <div className="container mx-auto px-4">
             <div className="bg-gradient-to-r from-[#f74f4f] to-[#ff7a45] rounded-xl p-8 md:p-10 shadow-lg relative overflow-hidden">
@@ -1613,19 +1742,94 @@ useEffect(() => {
               </div>
               
               <div className="max-w-3xl mx-auto text-center relative z-10">
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Looking for a specific RV park?</h2>
-                <p className="text-white/90 mb-8 text-lg">
-                  Tell us what you're looking for and we'll help you find the perfect property. Join our buyers list for early access to new listings.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                  <Input
-                    placeholder="Email address"
-                    className="bg-white/90 border-0 focus:ring-2 focus:ring-white text-gray-800 placeholder-gray-500 h-12"
-                  />
-                  <Button className="bg-white text-[#f74f4f] hover:bg-gray-100 h-12 px-6">
-                    Join Buyer List
-                  </Button>
-                </div>
+                {subscriptionSuccess ? (
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-lg mx-auto" aria-live="polite">
+                    <div className="flex flex-col items-center">
+                      <CheckCircle className="h-16 w-16 text-white mb-4" aria-hidden="true" />
+                      <h3 className="text-2xl font-semibold mb-2 text-white">Welcome to the Buyer List!</h3>
+                      <p className="mb-6 text-white/90">
+                        You'll now receive early access to new RV park listings and exclusive investment opportunities.
+                      </p>
+                      <Button 
+                        onClick={() => setSubscriptionSuccess(false)}
+                        className="bg-white text-[#f74f4f] hover:bg-gray-100"
+                      >
+                        Return to Form
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Looking for a specific RV park?</h2>
+                    <p className="text-white/90 mb-8 text-lg">
+                      Tell us what you're looking for and we'll help you find the perfect property. Join our buyers list for early access to new listings.
+                    </p>
+                    
+                    <form onSubmit={handleSubscribe} className="max-w-md mx-auto">
+                      {formError && (
+                        <div className="mb-4 p-3 bg-white/10 backdrop-blur-sm rounded-md text-left flex items-start" aria-live="assertive">
+                          <AlertCircle className="h-5 w-5 text-white mr-2 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                          <span className="text-white text-sm">{formError}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                        <Input
+                          type="email"
+                          name="email"
+                          placeholder="Enter your email address"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className={`flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50
+                            ${!email && formError ? "border-red-300" : ""}`}
+                          aria-label="Email address for buyer list"
+                          aria-required="true"
+                          aria-invalid={formError ? "true" : "false"}
+                          disabled={isSubmittingEmail}
+                        />
+                        <Button 
+                          type="submit"
+                          className="bg-white text-[#f74f4f] hover:bg-gray-100 hover:shadow-lg transition-all"
+                          disabled={isSubmittingEmail || !captchaToken}
+                          aria-label="Join buyer list"
+                        >
+                          {isSubmittingEmail ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                              Joining...
+                            </>
+                          ) : "Join Buyer List"}
+                        </Button>
+                      </div>
+                      
+                      {/* Security verification section */}
+                      <div 
+                        className={`flex justify-center py-2 mb-4 ${!captchaToken && formError ? "bg-white/10 backdrop-blur-sm rounded-md p-2" : ""}`}
+                        aria-live="polite"
+                      >
+                        {HCAPTCHA_SITE_KEY ? (
+                          <HCaptcha
+                            ref={captchaRef}
+                            sitekey={HCAPTCHA_SITE_KEY}
+                            onVerify={handleVerificationSuccess}
+                            onError={handleCaptchaError}
+                            onExpire={() => setCaptchaToken(null)}
+                            theme="light"
+                          />
+                        ) : (
+                          <div className="text-sm text-white p-2 bg-white/10 backdrop-blur-sm rounded-md">
+                            Security verification not configured. Please contact support.
+                          </div>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-white/70 mt-4">
+                        By joining, you agree to receive early access notifications about new RV park listings. 
+                        You can unsubscribe at any time.
+                      </p>
+                    </form>
+                  </>
+                )}
               </div>
             </div>
           </div>
