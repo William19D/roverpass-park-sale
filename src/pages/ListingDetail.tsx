@@ -408,55 +408,43 @@ const ListingDetail = () => {
           return publicUrl?.publicUrl || '';
         }) || [];
         
-        // Initialize broker info with default values
+        // Initialize broker info using broker_name from listing
         let brokerInfo: BrokerInfo = { 
-          id: "unknown",
-          name: "Unknown Broker",
+          id: supabaseListing.user_id || "unknown",
+          name: supabaseListing.broker_name || "Unknown Broker",
           email: 'contact@example.com',
-          company: 'RV Park Specialists',
-          title: "RV Park Sales Agent",
+          company: '',
+          title: "Property Sales Agent",
           experience: 5,
           totalListings: 24,
           joinedDate: new Date().toISOString(),
           verifiedStatus: true
         };
         
-        // If we have a user_id, try getting broker name from Edge Function
-        if (supabaseListing.user_id) {
-          // Use Edge Function to get broker name
-          const brokerName = await fetchBrokerName(supabaseListing.id);
-          
-          if (brokerName) {
+        // If we have a user_id and no broker_name, try getting more detailed info from profiles
+        if (supabaseListing.user_id && !supabaseListing.broker_name) {
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', supabaseListing.user_id)
+            .single();
+            
+          if (!userError && userData) {
             brokerInfo = {
-              ...brokerInfo,
-              id: supabaseListing.user_id,
-              name: brokerName,
+              id: userData.id || "unknown",
+              name: userData.full_name || "Unknown Broker",
+              email: userData.email || 'contact@example.com',
+              company: userData.company_name || '',
+              avatar: userData.avatar_url,
+              phone: userData.phone,
+              title: userData.title || "Property Specialist",
+              bio: userData.bio || "Specialist in recreational property sales",
+              website: userData.website,
+              experience: userData.experience || 5,
+              totalListings: 24,
+              joinedDate: userData.created_at,
+              verifiedStatus: userData.verified || true
             };
-          } else {
-            // Fallback to profile data if Edge Function fails
-            const { data: userData, error: userError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', supabaseListing.user_id)
-              .single();
-              
-            if (!userError && userData) {
-              brokerInfo = {
-                id: userData.id || "unknown",
-                name: userData.full_name || "Unknown Broker",
-                email: userData.email || 'contact@example.com',
-                company: userData.company_name || 'RV Park Specialists',
-                avatar: userData.avatar_url,
-                phone: userData.phone,
-                title: userData.title || "RV Park Specialist",
-                bio: userData.bio || "Specialist in recreational property sales",
-                website: userData.website,
-                experience: userData.experience || 5,
-                totalListings: 24,
-                joinedDate: userData.created_at,
-                verifiedStatus: userData.verified || true
-              };
-            }
           }
         }
         

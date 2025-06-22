@@ -157,7 +157,12 @@ const listingSchema = z.object({
   captchaToken: z
     .string()
     .min(1, { message: "Please complete the CAPTCHA verification" })
-    .optional()
+    .optional(),
+    
+  // Add broker_name field to schema
+  broker_name: z
+    .string()
+    .optional(),
 });
 
 // Image upload interface
@@ -1369,6 +1374,11 @@ const uploadPDFsToSupabase = async (listingId: number) => {
         throw new Error("Annual revenue is too large for database. Maximum value is 9,999,999,999.99");
       }
       
+      // Extract broker name from user metadata
+      const firstName = user.user_metadata?.first_name || '';
+      const lastName = user.user_metadata?.last_name || '';
+      const brokerName = `${firstName} ${lastName}`.trim() || user.email?.split('@')[0] || 'Unknown Broker';
+      
       const listingData = {
         title: values.title.trim(),
         price: price,
@@ -1383,13 +1393,14 @@ const uploadPDFsToSupabase = async (listingId: number) => {
         annual_revenue: annual_revenue,
         cap_rate: parseFloat(values.capRate),
         user_id: user.id,
+        broker_name: brokerName, // Add broker name to listing data
         created_at: new Date().toISOString(),
         status: 'pending',
         property_type: values.propertyType,
         amenities: values.amenities
       };
       
-      console.log("Submitting listing with validated numeric fields:", listingData);
+      console.log("Submitting listing with validated numeric fields and broker name:", listingData);
       
       // Insert into listings table
       const { data, error } = await supabase
@@ -2156,4 +2167,3 @@ const uploadPDFsToSupabase = async (listingId: number) => {
 };
 
 export default AddListing;
-                

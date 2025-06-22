@@ -74,6 +74,7 @@ interface Listing {
   state: string;
   property_type: string;
   user_id: string;
+  broker_name?: string; // Add broker_name field
   description?: string;
   address?: string;
   num_sites?: number;
@@ -190,7 +191,7 @@ const AdminDashboard = () => {
       // Use Promise.race to implement our own timeout mechanism instead of AbortController
       const { data, error } = await supabase
         .from('listings')
-        .select('id, title, price, status, created_at, rejection_reason, city, state, property_type, user_id')
+        .select('id, title, price, status, created_at, rejection_reason, city, state, property_type, user_id, broker_name') // Include broker_name
         .order('created_at', { ascending: false });
       
       // Clear the timeout since we got a response
@@ -233,6 +234,7 @@ const AdminDashboard = () => {
         state: item.state || 'Unknown',
         property_type: item.property_type || 'RV Park',
         user_id: item.user_id,
+        broker_name: item.broker_name || 'Unknown Broker', // Include broker_name
       }));
       
       // Update all states
@@ -766,6 +768,7 @@ const editListing = (listing: Listing) => {
                     <TableHead>Location</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Broker</TableHead> {/* Add Broker column */}
                     <TableHead>Status</TableHead>
                     <TableHead>Listed On</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -778,6 +781,7 @@ const editListing = (listing: Listing) => {
                       <TableCell>{listing.city}, {listing.state}</TableCell>
                       <TableCell>{formatCurrency(listing.price)}</TableCell>
                       <TableCell>{listing.property_type}</TableCell>
+                      <TableCell>{listing.broker_name || 'Unknown'}</TableCell> {/* Display broker name */}
                       <TableCell>
                         <StatusBadge status={listing.status} />
                         {listing.status === 'rejected' && listing.rejection_reason && (

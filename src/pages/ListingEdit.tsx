@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Upload, DollarSign, MapPin, Home, PercentSquare, X, Image as ImageIcon, 
   CheckSquare, Building, Map as MapIcon, Loader2, AlertCircle, CheckCircle, 
-  XCircle, Clock, Plus, ArrowLeft
+  XCircle, Clock, Plus, ArrowLeft, Eye
 } from "lucide-react";
 import { states } from "@/data/mockListings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -151,6 +151,11 @@ const listingSchema = z.object({
   status: z
     .enum(["pending", "approved", "rejected"])
     .default("pending"),
+
+  // Add broker_name field to edit schema
+  broker_name: z
+    .string()
+    .optional(),
 });
 
 // Image interfaces
@@ -170,6 +175,33 @@ interface ExistingImage {
   position: number;
   is_primary: boolean;
   url?: string; // URL for display
+}
+
+// PDF upload interface - enhanced with fields matching listing_documents schema
+interface PDFUpload {
+  file: File;
+  id: string;
+  name: string; // Match column name in listing_documents
+  description?: string; // Match column name in listing_documents
+  file_type: string; // Match column name in listing_documents
+  file_size: number; // Match column name in listing_documents
+  is_primary?: boolean; // Match column name in listing_documents
+  progress: number;
+  uploaded?: boolean;
+  path?: string;
+  error?: string;
+}
+
+// Add interface for existing documents
+interface ExistingDocument {
+  id: string;
+  name: string;
+  description?: string;
+  storage_path: string;
+  file_type: string;
+  file_size: number;
+  is_primary: boolean;
+  url?: string; // URL for display/download
 }
 
 const propertyTypes = [
@@ -466,6 +498,12 @@ const ListingEdit = () => {
   const [images, setImages] = useState<ImageUpload[]>([]);
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  
+  // Add state for PDF management
+  const [pdfs, setPdfs] = useState<PDFUpload[]>([]);
+  const [existingDocuments, setExistingDocuments] = useState<ExistingDocument[]>([]);
+  const [documentsToDelete, setDocumentsToDelete] = useState<string[]>([]);
+  
   const [selectedAmenities, setSelectedAmenities] = useState<Record<string, boolean>>({});
   const [markerPosition, setMarkerPosition] = useState<[number, number]>([39.8283, -98.5795]); // USA center
   const [locationFound, setLocationFound] = useState(false);
@@ -498,7 +536,8 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
       latitude: undefined,
       longitude: undefined,
       location_set: false,
-      status: "pending"
+      status: "pending",
+      broker_name: ""
     },
     mode: "onChange",
   });
@@ -549,7 +588,7 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
         // Fetch the listing data
         const { data: listing, error: listingError } = await supabase
           .from('listings')
-          .select('*, user_id')
+          .select('*, user_id, broker_name') // Include broker_name in select
           .eq('id', id)
           .single();
           
@@ -609,6 +648,36 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
           setExistingImages(processedImages);
         }
         
+        // Fetch listing documents
+        const { data: documentData, error: documentError } = await supabase
+          .from('listing_documents')
+          .select('*')
+          .eq('listing_id', id)
+          .order('created_at');
+        
+        if (documentError) {
+          console.error("Error fetching documents:", documentError);
+        }
+        
+        // Process documents if they exist
+        if (documentData && documentData.length > 0) {
+          const processedDocuments = await Promise.all(
+            documentData.map(async (doc) => {
+              // Get the public URL for each document
+              const { data: urlData } = await supabase.storage
+                .from('listing-documents')
+                .getPublicUrl(doc.storage_path);
+              
+              return {
+                ...doc,
+                url: urlData.publicUrl
+              };
+            })
+          );
+          
+          setExistingDocuments(processedDocuments);
+        }
+        
         // Parse amenities from the JSON string or use the object directly
         let amenities = {};
         try {
@@ -639,7 +708,8 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
           latitude: listing.latitude || undefined,
           longitude: listing.longitude || undefined,
           location_set: !!(listing.latitude && listing.longitude),
-          status: listing.status || "pending"
+          status: listing.status || "pending",
+          broker_name: listing.broker_name || "" // Include broker_name in form
         });
         
         // Update amenities state
@@ -848,6 +918,80 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
     setExistingImages(prev => prev.filter(img => img.id !== imageId));
   };
 
+  // Enhanced PDF file selection handler
+  const handlePDFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      
+      // Limit to 3 PDFs total (including existing)
+      if (selectedFiles.length + pdfs.length + existingDocuments.length > 3) {
+        toast({
+          variant: "destructive",
+          title: "Too many files",
+          description: "You can have a maximum of 3 PDF documents per listing."
+        });
+        return;
+      }
+
+      // Validate file types and sizes
+      const validPDFTypes = ["application/pdf"];
+      const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+      
+      const validFiles = selectedFiles.filter(file => {
+        if (!validPDFTypes.includes(file.type)) {
+          toast({
+            variant: "destructive",
+            title: "Invalid file type",
+            description: `${file.name} is not a PDF file. Please use PDF format only.`
+          });
+          return false;
+        }
+        
+        if (file.size > maxSizeInBytes) {
+          toast({
+            variant: "destructive",
+            title: "File too large",
+            description: `${file.name} exceeds the 10MB size limit.`
+          });
+          return false;
+        }
+        
+        return true;
+      });
+
+      // Create PDF objects with enhanced metadata to match schema
+      const newPDFs = validFiles.map((file, index) => {
+        return {
+          file,
+          id: uuidv4(),
+          name: file.name,
+          description: `Document for property listing`,
+          file_type: 'application/pdf',
+          file_size: file.size,
+          is_primary: pdfs.length === 0 && existingDocuments.length === 0 && index === 0, // First document is primary if none exist
+          progress: 0,
+          uploaded: false
+        };
+      });
+
+      setPdfs([...pdfs, ...newPDFs]);
+    }
+  };
+
+  // PDF removal handler for new PDFs
+  const removePDF = (id: string) => {
+    setPdfs(pdfs.filter(pdf => pdf.id !== id));
+  };
+  
+  // Existing document removal handler
+  const handleRemoveExistingDocument = (documentId: string) => {
+    // Mark for deletion but keep in the list for now (will be deleted on save)
+    setDocumentsToDelete(prev => [...prev, documentId]);
+    
+    // Visually remove from the array
+    setExistingDocuments(prev => prev.filter(doc => doc.id !== documentId));
+  };
+
   // Upload new images
   const uploadNewImages = async (listingId: number | string) => {
     if (!user) {
@@ -1043,6 +1187,221 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
     }
   };
   
+  // Upload new PDFs
+  const uploadNewDocuments = async (listingId: number | string) => {
+    if (!user) {
+      console.error("User not authenticated");
+      return false;
+    }
+
+    // Check if we have PDFs to upload
+    if (pdfs.length === 0) {
+      return true; // Return success because there's nothing to upload
+    }
+
+    setUploadStatus("Uploading new documents...");
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (let i = 0; i < pdfs.length; i++) {
+      const pdf = pdfs[i];
+      const documentNumber = i + 1;
+      setUploadStatus(`Uploading document ${documentNumber} of ${pdfs.length}...`);
+      
+      try {
+        // Show upload start in UI
+        setPdfs(prevPdfs => 
+          prevPdfs.map(p => 
+            p.id === pdf.id ? { ...p, progress: 10 } : p
+          )
+        );
+        
+        // Create a unique filename
+        const timestamp = Date.now();
+        const uniqueId = uuidv4().substring(0, 6);
+        const fileName = `document_${timestamp}_${uniqueId}.pdf`;
+        const filePath = `${user.id}/${fileName}`;
+        
+        console.log(`Starting upload of PDF ${documentNumber}/${pdfs.length}: ${filePath}`);
+        
+        // Update progress indicator
+        setPdfs(prevPdfs => 
+          prevPdfs.map(p => 
+            p.id === pdf.id ? { ...p, progress: 30 } : p
+          )
+        );
+        
+        // Upload to Supabase Storage
+        const { data, error: uploadError } = await supabase.storage
+          .from('listing-documents')
+          .upload(filePath, pdf.file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+          
+        if (uploadError) {
+          console.error("Storage upload error details:", uploadError);
+          throw uploadError;
+        }
+        
+        console.log("PDF successfully uploaded to storage:", data);
+        
+        // Progress update after storage upload
+        setPdfs(prevPdfs => 
+          prevPdfs.map(p => 
+            p.id === pdf.id ? { ...p, progress: 70, path: filePath } : p
+          )
+        );
+        
+        // Create database record if storage upload succeeded
+        const { error: dbError } = await supabase
+          .from('listing_documents')
+          .insert([{
+            listing_id: listingId,
+            name: pdf.name || pdf.file.name,
+            description: `Document for listing #${listingId}`,
+            storage_path: filePath,
+            file_type: 'application/pdf',
+            file_size: pdf.file.size,
+            is_primary: i === 0 && existingDocuments.length === 0, // First document is primary if no existing docs
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
+          
+        if (dbError) {
+          console.error("Database insert error:", dbError);
+          
+          // Try to clean up orphaned file
+          try {
+            await supabase.storage
+              .from('listing-documents')
+              .remove([filePath]);
+          } catch (removeError) {
+            console.error(`Failed to remove orphaned file:`, removeError);
+          }
+          
+          throw dbError;
+        }
+        
+        console.log(`Database record created for PDF ${documentNumber}`);
+        
+        // Success update
+        setPdfs(prevPdfs => 
+          prevPdfs.map(p => 
+            p.id === pdf.id ? { 
+              ...p, 
+              progress: 100, 
+              uploaded: true,
+              path: filePath
+            } : p
+          )
+        );
+        
+        successCount++;
+        
+      } catch (error: any) {
+        errorCount++;
+        console.error(`Error processing PDF ${documentNumber}:`, error);
+        
+        setPdfs(prevPdfs => 
+          prevPdfs.map(p => 
+            p.id === pdf.id ? { 
+              ...p, 
+              progress: 0, 
+              error: error.message || "Upload failed" 
+            } : p
+          )
+        );
+      }
+    }
+    
+    setUploadStatus(null);
+    
+    // Provide feedback
+    if (errorCount > 0) {
+      if (successCount > 0) {
+        toast({
+          variant: "default",
+          title: `Mixed upload results`,
+          description: `${successCount} documents uploaded, ${errorCount} failed.`
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: `All uploads failed`,
+          description: "None of your documents could be uploaded. Please try again."
+        });
+      }
+    } else if (successCount > 0) {
+      toast({
+        variant: "default", 
+        title: "Documents uploaded successfully",
+        description: `All ${successCount} document(s) were uploaded.`
+      });
+    }
+    
+    return successCount > 0 || pdfs.length === 0;
+  };
+  
+  // Delete marked documents
+  const deleteMarkedDocuments = async () => {
+    if (documentsToDelete.length === 0) return true;
+    
+    setUploadStatus("Removing deleted documents...");
+    
+    try {
+      // First get the paths of documents to delete
+      const { data: documentData, error: fetchError } = await supabase
+        .from('listing_documents')
+        .select('storage_path')
+        .in('id', documentsToDelete);
+      
+      if (fetchError) {
+        throw new Error(`Error fetching document data: ${fetchError.message}`);
+      }
+      
+      // Delete documents from storage
+      if (documentData && documentData.length > 0) {
+        const pathsToDelete = documentData.map(doc => doc.storage_path);
+        
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('listing-documents')
+          .remove(pathsToDelete);
+          
+        if (storageError) {
+          console.error("Error deleting from storage:", storageError);
+          // Continue anyway to delete the database entries
+        }
+      }
+      
+      // Delete document records from database
+      const { error: deleteError } = await supabase
+        .from('listing_documents')
+        .delete()
+        .in('id', documentsToDelete);
+        
+      if (deleteError) {
+        throw new Error(`Error deleting documents: ${deleteError.message}`);
+      }
+      
+      // Clear the list of documents to delete
+      setDocumentsToDelete([]);
+      return true;
+      
+    } catch (error) {
+      console.error("Error deleting documents:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to delete some documents. ${error instanceof Error ? error.message : ""}`
+      });
+      return false;
+    } finally {
+      setUploadStatus(null);
+    }
+  };
+  
   // Status change handler
 const handleStatusChange = (status: ListingStatus) => {
   // Only admins can change status
@@ -1143,7 +1502,8 @@ const confirmStatusChange = () => {
         cap_rate: parseFloat(values.capRate),
         updated_at: new Date().toISOString(),
         property_type: values.propertyType,
-        amenities: values.amenities
+        amenities: values.amenities,
+        broker_name: values.broker_name || '' // Preserve existing broker_name
       };
       
       // Add status field if admin is changing it
@@ -1164,8 +1524,14 @@ const confirmStatusChange = () => {
       // Handle deleted images
       await deleteMarkedImages();
       
+      // Handle deleted documents
+      await deleteMarkedDocuments();
+      
       // Upload new images
       await uploadNewImages(id);
+      
+      // Upload new documents
+      await uploadNewDocuments(id);
       
       // Show success message
       toast({
@@ -1195,6 +1561,15 @@ const confirmStatusChange = () => {
       setIsSubmitting(false);
       setUploadStatus(null);
     }
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   // Show loading spinner while checking permissions and loading data
@@ -1850,6 +2225,130 @@ const confirmStatusChange = () => {
                 {imagesToDelete.length > 0 && (
                   <p className="text-sm text-red-500">
                     {imagesToDelete.length} image(s) marked for deletion. Changes will be applied when you save.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Document Upload Section */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-medium border-b pb-2">Property Documents</h2>
+              
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Current Documents</label>
+                <div className="space-y-3">
+                                   {/* Existing documents */}
+                  {existingDocuments.map((document) => (
+                    <div 
+                      key={document.id}
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-red-100 rounded-md flex items-center justify-center">
+                            <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{document.name}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(document.file_size)}</p>
+                          {document.is_primary && (
+                            <Badge variant="secondary" className="text-xs mt-1">Primary Document</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(document.url, '_blank')}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveExistingDocument(document.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* New documents being uploaded */}
+                  {pdfs.map((pdf) => (
+                    <div 
+                      key={pdf.id} 
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-md"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-blue-100 rounded-md flex items-center justify-center">
+                            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{pdf.name}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(pdf.file_size)}</p>
+                          {pdf.progress > 0 && pdf.progress < 100 && (
+                            <div className="mt-1">
+                              <Progress value={pdf.progress} className="h-2" />
+                            </div>
+                          )}
+                          {pdf.error && (
+                            <p className="text-xs text-red-500 mt-1">{pdf.error}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removePDF(pdf.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {/* Upload button (if less than 3 documents total) */}
+                  {existingDocuments.length + pdfs.length < 3 && (
+                    <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors">
+                      <label htmlFor="pdf-upload" className="cursor-pointer">
+                        <div className="flex flex-col items-center">
+                          <Plus className="h-8 w-8 text-gray-400 mb-2" />
+                          <span className="text-sm font-medium text-gray-700">Upload PDF Document</span>
+                          <span className="text-xs text-gray-500 mt-1">Up to 10MB per file</span>
+                        </div>
+                        <input
+                          id="pdf-upload"
+                          type="file"
+                          accept="application/pdf"
+                          multiple
+                          className="hidden"
+                          onChange={handlePDFChange}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Upload up to 3 PDF documents (property reports, financial statements, etc.). Max 10MB per file.
+                </p>
+                {documentsToDelete.length > 0 && (
+                  <p className="text-sm text-red-500">
+                    {documentsToDelete.length} document(s) marked for deletion. Changes will be applied when you save.
                   </p>
                 )}
               </div>
