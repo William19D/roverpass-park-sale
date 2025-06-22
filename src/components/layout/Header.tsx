@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 // Importar el logo directamente usando el alias @
 import logoImage from "@/assets/logo.svg";
@@ -217,6 +218,47 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
 }) => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth(); // Get isAdmin status from auth context
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [loadingProfileImage, setLoadingProfileImage] = useState(false);
+  
+  // Load user's profile image from database
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (!user?.id) return;
+
+      setLoadingProfileImage(true);
+      try {
+        const { data, error } = await supabase
+          .from('profile_images')
+          .select('storage_path')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error('Error loading profile image:', error);
+          return;
+        }
+
+        if (data?.storage_path) {
+          // Get public URL for the image
+          const { data: urlData } = await supabase.storage
+            .from('profile-images')
+            .getPublicUrl(data.storage_path);
+
+          if (urlData?.publicUrl) {
+            setProfileImageUrl(urlData.publicUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading profile image:', error);
+      } finally {
+        setLoadingProfileImage(false);
+      }
+    };
+
+    loadProfileImage();
+  }, [user?.id]);
   
   // Función para obtener nombre de usuario de diversas fuentes
   const userName = useMemo(() => {
@@ -240,12 +282,6 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
     
     // Fall back to email if no name is available
     return user.email?.split('@')[0] || "";
-  }, [user]);
-  
-  // Get user profile image URL or placeholder
-  const profileImage = useMemo(() => {
-    if (!user) return "";
-    return user.user_metadata?.profile_image_url || "";
   }, [user]);
   
   // Get user initials for avatar fallback
@@ -312,8 +348,16 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
               <div className="flex items-center space-x-2">
                 <div className="flex items-center">
                   <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage src={profileImage} alt={userName} />
-                    <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
+                    {loadingProfileImage ? (
+                      <AvatarFallback className="bg-gray-200">
+                        <div className="w-4 h-4 bg-gray-300 rounded animate-pulse"></div>
+                      </AvatarFallback>
+                    ) : (
+                      <>
+                        <AvatarImage src={profileImageUrl || undefined} alt={userName} />
+                        <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
+                      </>
+                    )}
                   </Avatar>
                   <span>Hello, <span className="font-medium">{userName || user.email?.split('@')[0]}</span></span>
                 </div>
@@ -352,8 +396,16 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 px-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profileImage} alt={userName} />
-                  <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
+                  {loadingProfileImage ? (
+                    <AvatarFallback className="bg-gray-200">
+                      <div className="w-4 h-4 bg-gray-300 rounded animate-pulse"></div>
+                    </AvatarFallback>
+                  ) : (
+                    <>
+                      <AvatarImage src={profileImageUrl || undefined} alt={userName} />
+                      <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 <span className="text-sm font-medium text-gray-700 max-w-[120px] truncate">
                   {userName || user.email?.split('@')[0]}
