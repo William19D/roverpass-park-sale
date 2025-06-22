@@ -208,6 +208,15 @@ const MobileNavItem = memo(({ item, setMenuOpen }: {
   );
 });
 
+// Create a more persistent cache with expiration
+const profileImageCache = new Map<string, { url: string; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Helper function to check if cache is valid
+const isCacheValid = (timestamp: number) => {
+  return Date.now() - timestamp < CACHE_DURATION;
+};
+
 // Componente para la sección de autenticación (memoizado)
 const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
   user: any;
@@ -217,16 +226,44 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
   setMenuOpen: (isOpen: boolean) => void;
 }) => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth(); // Get isAdmin status from auth context
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(() => {
+    // Initialize with cached value if available and valid
+    if (user?.id) {
+      const cached = profileImageCache.get(user.id);
+      if (cached && isCacheValid(cached.timestamp)) {
+        return cached.url || null;
+      }
+    }
+    return null;
+  });
   const [loadingProfileImage, setLoadingProfileImage] = useState(false);
+  const [imageLoadAttempted, setImageLoadAttempted] = useState(false);
   
-  // Load user's profile image from database
+  // Load user's profile image from database - with persistent caching
   useEffect(() => {
     const loadProfileImage = async () => {
       if (!user?.id) return;
 
+      // Check cache first with timestamp validation
+      const cached = profileImageCache.get(user.id);
+      if (cached && isCacheValid(cached.timestamp)) {
+        if (profileImageUrl !== cached.url) {
+          setProfileImageUrl(cached.url || null);
+        }
+        setImageLoadAttempted(true);
+        return;
+      }
+
+      // Don't fetch if already attempted for this user session
+      if (imageLoadAttempted) return;
+
+      // Only fetch if not already loading
+      if (loadingProfileImage) return;
+
       setLoadingProfileImage(true);
+      setImageLoadAttempted(true);
+      
       try {
         const { data, error } = await supabase
           .from('profile_images')
@@ -235,8 +272,10 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
           .eq('is_active', true)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        if (error && error.code !== 'PGRST116') {
           console.error('Error loading profile image:', error);
+          // Cache the "no image" result with timestamp
+          profileImageCache.set(user.id, { url: '', timestamp: Date.now() });
           return;
         }
 
@@ -247,17 +286,45 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
             .getPublicUrl(data.storage_path);
 
           if (urlData?.publicUrl) {
+            // Cache the URL with timestamp
+            profileImageCache.set(user.id, { 
+              url: urlData.publicUrl, 
+              timestamp: Date.now() 
+            });
             setProfileImageUrl(urlData.publicUrl);
           }
+        } else {
+          // Cache empty result with timestamp
+          profileImageCache.set(user.id, { url: '', timestamp: Date.now() });
         }
+        
       } catch (error) {
         console.error('Error loading profile image:', error);
+        // Cache empty result on error with timestamp
+        profileImageCache.set(user.id, { url: '', timestamp: Date.now() });
       } finally {
         setLoadingProfileImage(false);
       }
     };
 
     loadProfileImage();
+  }, [user?.id, imageLoadAttempted]); // Add imageLoadAttempted to dependencies
+
+  // Reset attempt flag when user changes
+  useEffect(() => {
+    if (!user?.id) {
+      setProfileImageUrl(null);
+      setImageLoadAttempted(false);
+    } else {
+      // Check if we have cached data for new user
+      const cached = profileImageCache.get(user.id);
+      if (cached && isCacheValid(cached.timestamp)) {
+        setProfileImageUrl(cached.url || null);
+        setImageLoadAttempted(true);
+      } else {
+        setImageLoadAttempted(false);
+      }
+    }
   }, [user?.id]);
   
   // Función para obtener nombre de usuario de diversas fuentes
@@ -334,6 +401,22 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
+  // Memoize the avatar component with stable dependencies - prevent unnecessary re-renders
+  const avatarComponent = useMemo(() => (
+    <Avatar className="h-8 w-8">
+      {!imageLoadAttempted ? (
+        <AvatarFallback className="bg-gray-200">
+          <div className="w-4 h-4 bg-gray-300 rounded animate-pulse"></div>
+        </AvatarFallback>
+      ) : (
+        <>
+          <AvatarImage src={profileImageUrl || undefined} alt={userName} />
+          <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
+        </>
+      )}
+    </Avatar>
+  ), [profileImageUrl, userName, userInitials, imageLoadAttempted]);
+
   if (loading) {
     return <div className="animate-pulse h-8 w-20 bg-gray-200 rounded"></div>;
   }
@@ -347,18 +430,9 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
             <div className="text-sm text-gray-600 px-3 py-2">
               <div className="flex items-center space-x-2">
                 <div className="flex items-center">
-                  <Avatar className="h-8 w-8 mr-2">
-                    {loadingProfileImage ? (
-                      <AvatarFallback className="bg-gray-200">
-                        <div className="w-4 h-4 bg-gray-300 rounded animate-pulse"></div>
-                      </AvatarFallback>
-                    ) : (
-                      <>
-                        <AvatarImage src={profileImageUrl || undefined} alt={userName} />
-                        <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
-                      </>
-                    )}
-                  </Avatar>
+                  <div className="mr-2">
+                    {avatarComponent}
+                  </div>
                   <span>Hello, <span className="font-medium">{userName || user.email?.split('@')[0]}</span></span>
                 </div>
               </div>
@@ -395,18 +469,7 @@ const AuthSection = memo(({ user, loading, signOut, isMobile, setMenuOpen }: {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 px-3">
-                <Avatar className="h-8 w-8">
-                  {loadingProfileImage ? (
-                    <AvatarFallback className="bg-gray-200">
-                      <div className="w-4 h-4 bg-gray-300 rounded animate-pulse"></div>
-                    </AvatarFallback>
-                  ) : (
-                    <>
-                      <AvatarImage src={profileImageUrl || undefined} alt={userName} />
-                      <AvatarFallback className="bg-[#f74f4f]/10 text-[#f74f4f]">{userInitials}</AvatarFallback>
-                    </>
-                  )}
-                </Avatar>
+                {avatarComponent}
                 <span className="text-sm font-medium text-gray-700 max-w-[120px] truncate">
                   {userName || user.email?.split('@')[0]}
                 </span>
@@ -618,7 +681,7 @@ export const Header = memo(() => {
     
     // Use navigate('/') to go to the root within the basename
     navigate('/');
-    
+
     window.scrollTo({
       top: 0,
       behavior: "instant"
