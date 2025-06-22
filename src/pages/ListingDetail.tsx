@@ -421,8 +421,9 @@ const ListingDetail = () => {
           verifiedStatus: true
         };
         
-        // If we have a user_id and no broker_name, try getting more detailed info from profiles
-        if (supabaseListing.user_id && !supabaseListing.broker_name) {
+        // If we have a user_id, get broker profile info including profile image
+        if (supabaseListing.user_id) {
+          // Get broker profile data
           const { data: userData, error: userError } = await supabase
             .from('profiles')
             .select('*')
@@ -432,10 +433,9 @@ const ListingDetail = () => {
           if (!userError && userData) {
             brokerInfo = {
               id: userData.id || "unknown",
-              name: userData.full_name || "Unknown Broker",
+              name: userData.full_name || supabaseListing.broker_name || "Unknown Broker",
               email: userData.email || 'contact@example.com',
               company: userData.company_name || '',
-              avatar: userData.avatar_url,
               phone: userData.phone,
               title: userData.title || "Property Specialist",
               bio: userData.bio || "Specialist in recreational property sales",
@@ -445,6 +445,30 @@ const ListingDetail = () => {
               joinedDate: userData.created_at,
               verifiedStatus: userData.verified || true
             };
+          }
+          
+          // Get broker's profile image
+          try {
+            const { data: profileImageData, error: imageError } = await supabase
+              .from('profile_images')
+              .select('*')
+              .eq('user_id', supabaseListing.user_id)
+              .eq('is_active', true)
+              .single();
+
+            if (!imageError && profileImageData) {
+              // Get public URL for the profile image
+              const { data: urlData } = await supabase.storage
+                .from('profile-images')
+                .getPublicUrl(profileImageData.storage_path);
+
+              if (urlData?.publicUrl) {
+                brokerInfo.avatar = urlData.publicUrl;
+              }
+            }
+          } catch (profileImageError) {
+            // Profile image is optional, so we continue without it
+            console.log('No profile image found for broker:', profileImageError);
           }
         }
         
@@ -1428,7 +1452,7 @@ This turnkey operation is perfect for investors looking to enter the growing RV 
                 <Button 
                   className="w-full bg-white hover:bg-white/90 text-[#f74f4f]"
                   size="lg"
-                                    onClick={() => setContactModalOpen(true)}
+                  onClick={() => setContactModalOpen(true)}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Contact About This Property
