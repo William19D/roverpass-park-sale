@@ -35,23 +35,52 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 
 const queryClient = new QueryClient();
 
-// Configuración del basename - para Vercel no necesitamos basename
+// Verificar dominio permitido
+const isAllowedDomain = () => {
+  const hostname = window.location.hostname;
+  const allowedDomains = [
+    'localhost',
+    '127.0.0.1',
+    'park-sell-rover.lovable.app'
+  ];
+  
+  return allowedDomains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
+};
+
+// Componente de acceso denegado
+const AccessDenied = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-red-50">
+    <div className="text-center p-8">
+      <h1 className="text-3xl font-bold text-red-600 mb-4">Access Denied</h1>
+      <p className="text-lg text-red-500 mb-2">This application is not accessible from this domain.</p>
+      <p className="text-gray-600">Please contact the administrator for access.</p>
+    </div>
+  </div>
+);
+
+// Configuración del basename
 const getBasename = () => {
-  // En Vercel, usar siempre basename vacío ya que las rewrites manejan las rutas
   return '';
 };
 
 const BASENAME = getBasename();
 
-// Admin redirect component
-const AdminRedirect = () => {
-  return null;
-};
-
 // Route handling component
 const AppRoutes = () => {
   const { user, loading, isAdmin, roles } = useAuth();
   const location = useLocation();
+  
+  // Verificar dominio al cargar
+  useEffect(() => {
+    if (!isAllowedDomain()) {
+      console.warn('Access denied: Domain not allowed');
+    }
+  }, []);
+  
+  // Si el dominio no está permitido, mostrar página de acceso denegado
+  if (!isAllowedDomain()) {
+    return <AccessDenied />;
+  }
   
   // Detect admin routes
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -68,8 +97,6 @@ const AppRoutes = () => {
   
   return (
     <>
-      <AdminRedirect />
-      
       {/* Only show header on non-admin routes */}
       {!isAdminRoute && (
         <>
@@ -82,7 +109,7 @@ const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/listings" element={<Listings />} />
-        <Route path="/listings/:id" element={<ListingDetail />} />
+        <Route path="/listings/:slug" element={<ListingDetail />} />
         <Route path="/support" element={<Support />} />
         
         {/* User Profile route */}
@@ -109,7 +136,7 @@ const AppRoutes = () => {
         <Route path="/listings/new" element={
           user ? <AddListing /> : <Navigate to="/login" state={{ from: location }} replace />
         } />
-        <Route path="/listings/:id/edit" element={
+        <Route path="/listings/:slug/edit" element={
           user ? (ListingEdit ? <ListingEdit /> : <div>Loading editor...</div>) : <Navigate to="/login" state={{ from: location }} replace />
         } />
         

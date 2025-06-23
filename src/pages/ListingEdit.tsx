@@ -41,6 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { extractIdFromSlug } from "@/lib/utils";
 
 // Enhanced validation schema with NUMERIC CONSTRAINTS added
 // Adding status field for admins to use
@@ -485,7 +486,7 @@ const LocationFinder: React.FC<LocationFinderProps> = ({ city, state, onLocation
 };
 
 const ListingEdit = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>(); // Changed from id to slug
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -585,11 +586,18 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
       try {
         setIsLoading(true);
         
+        // Extract the actual ID from the slug
+        const actualId = slug ? extractIdFromSlug(slug) : '';
+        
+        if (!actualId) {
+          throw new Error("Invalid listing URL");
+        }
+        
         // Fetch the listing data
         const { data: listing, error: listingError } = await supabase
           .from('listings')
-          .select('*, user_id, broker_name') // Include broker_name in select
-          .eq('id', id)
+          .select('*, user_id, broker_name')
+          .eq('id', actualId) // Use extracted ID
           .single();
           
         if (listingError) {
@@ -622,7 +630,7 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
         const { data: imageData, error: imageError } = await supabase
           .from('listing_images')
           .select('*')
-          .eq('listing_id', id)
+          .eq('listing_id', actualId)
           .order('position');
         
         if (imageError) {
@@ -652,7 +660,7 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
         const { data: documentData, error: documentError } = await supabase
           .from('listing_documents')
           .select('*')
-          .eq('listing_id', id)
+          .eq('listing_id', actualId)
           .order('created_at');
         
         if (documentError) {
@@ -735,7 +743,7 @@ const [newStatus, setNewStatus] = useState<ListingStatus | null>(null);
     };
     
     checkPermissionsAndLoadData();
-  }, [id, user, userRole, navigate, toast, form]);
+  }, [slug, user, userRole, navigate, toast, form]); // Changed from id to slug
   
   // Number input formatting helper
   const formatNumberInput = (value: string, allowDecimal: boolean = true) => {
@@ -1452,14 +1460,17 @@ const confirmStatusChange = () => {
   
   // Form submission handler
   const onSubmit = async (values: z.infer<typeof listingSchema>) => {
-    if (!user || !id) {
+    if (!user || !slug) { // Changed from id to slug
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Missing user or listing ID"
+        description: "Missing user or listing information"
       });
       return;
     }
+    
+    // Extract actual ID for database operations
+    const actualId = extractIdFromSlug(slug);
     
     // Validate location selection
     if (!values.latitude || !values.longitude) {
@@ -1515,7 +1526,7 @@ const confirmStatusChange = () => {
       const { error: updateError } = await supabase
         .from('listings')
         .update(listingData)
-        .eq('id', id);
+        .eq('id', actualId); // Use extracted ID
       
       if (updateError) {
         throw new Error(`Error updating listing: ${updateError.message}`);
@@ -1528,10 +1539,10 @@ const confirmStatusChange = () => {
       await deleteMarkedDocuments();
       
       // Upload new images
-      await uploadNewImages(id);
+      await uploadNewImages(actualId); // Use extracted ID
       
       // Upload new documents
-      await uploadNewDocuments(id);
+      await uploadNewDocuments(actualId); // Use extracted ID
       
       // Show success message
       toast({

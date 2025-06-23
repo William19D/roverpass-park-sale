@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Header } from "@/components/layout/Header"; // Removed HeaderSpacer import
+import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { mockListings } from "@/data/mockListings";
-import { formatCurrency, getListingDocuments, getFileTypeCategory } from "@/lib/utils";
+import { formatCurrency, getListingDocuments, getFileTypeCategory, extractIdFromSlug } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { 
   Download, MapPin, Share2, Heart, 
@@ -155,7 +155,8 @@ const secureDocumentDownload = async (
 };
 
 const ListingDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>(); // Changed from id to slug
+  const navigate = useNavigate();
   const [listing, setListing] = useState<ListingData | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -265,7 +266,7 @@ const ListingDetail = () => {
   // Fetch documents separately to ensure we have the latest data
   useEffect(() => {
     const fetchDocuments = async () => {
-      if (!id) return;
+      if (!slug) return;
       
       setLoadingDocuments(true);
       try {
@@ -273,7 +274,7 @@ const ListingDetail = () => {
         const { data: documentData, error } = await supabase
           .from('listing_documents')
           .select('*')
-          .eq('listing_id', id);
+          .eq('listing_id', slug);
           
         if (error) throw error;
         
@@ -308,7 +309,7 @@ const ListingDetail = () => {
     };
     
     fetchDocuments();
-  }, [id]);
+  }, [slug]);
   
   // Fetch listing data from mock data or Supabase
   useEffect(() => {
@@ -317,8 +318,17 @@ const ListingDetail = () => {
       setError(null);
       
       try {
+        // Extract the actual ID from the slug
+        const actualId = slug ? extractIdFromSlug(slug) : '';
+        
+        if (!actualId) {
+          setError("Invalid listing URL");
+          setLoading(false);
+          return;
+        }
+        
         // First check if we have it in mock listings
-        const mockListing = mockListings.find(l => l.id === id);
+        const mockListing = mockListings.find(l => l.id === actualId);
         
         if (mockListing) {
           // Add location coordinates for map display
@@ -378,7 +388,7 @@ const ListingDetail = () => {
         const { data: supabaseListing, error: supabaseError } = await supabase
           .from('listings')
           .select('*')
-          .eq('id', id)
+          .eq('id', actualId) // Use extracted ID
           .single();
         
         if (supabaseError) throw supabaseError;
@@ -393,7 +403,7 @@ const ListingDetail = () => {
         const { data: imagesData, error: imagesError } = await supabase
           .from('listing_images')
           .select('*')
-          .eq('listing_id', id)
+          .eq('listing_id', actualId)
           .order('position', { ascending: true });
           
         if (imagesError) throw imagesError;
@@ -544,10 +554,10 @@ const ListingDetail = () => {
       }
     };
     
-    if (id) {
+    if (slug) { // Changed from id to slug
       fetchListing();
     }
-  }, [id, toast]);
+  }, [slug, toast]); // Changed from id to slug
   
   // FIXED: handleSubmit function that removes captcha_token field
   const handleSubmit = async (e: React.FormEvent) => {

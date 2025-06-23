@@ -219,4 +219,32 @@ export const getCurrentFormattedDateTime = (): string => {
   const seconds = String(now.getSeconds()).padStart(2, '0');
   
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
+}
+
+// Generate a URL-friendly slug from a title
+export function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+}
+
+// Extract ID from slug (assuming format: "title-id")
+export function extractIdFromSlug(slug: string): string {
+  const parts = slug.split('-');
+  const lastPart = parts[parts.length - 1];
+  // Check if last part is numeric (our ID)
+  if (/^\d+$/.test(lastPart)) {
+    return lastPart;
+  }
+  // If no numeric ID found, return the slug as-is for backward compatibility
+  return slug;
+}
+
+// Generate a complete slug with ID for uniqueness
+export function generateListingSlug(title: string, id: string | number): string {
+  const baseSlug = generateSlug(title);
+  return `${baseSlug}-${id}`;
+}

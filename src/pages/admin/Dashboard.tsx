@@ -58,6 +58,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { generateListingSlug } from "@/lib/utils";
 
 // Status type for listings
 type ListingStatus = 'pending' | 'approved' | 'rejected' | 'all';
@@ -388,16 +389,13 @@ const AdminDashboard = () => {
   };
   // View listing function
   const viewListing = (listing: Listing) => {
-    // Using a safe approach with multiple fallbacks
     try {
-      const listingId = listing.id;
-      
-      // First try direct navigation
-      navigate(`/listings/${listingId}`);
+      const listingSlug = generateListingSlug(listing.title, listing.id);
+      navigate(`/listings/${listingSlug}`); // Use slug instead of ID
     } catch (err) {
-      // Fallback to window.open
       try {
-        window.open(`/listings/${listing.id}`, '_blank');
+        const listingSlug = generateListingSlug(listing.title, listing.id);
+        window.open(`/listings/${listingSlug}`, '_blank');
       } catch (fallbackErr) {
         toast({
           variant: "destructive",
