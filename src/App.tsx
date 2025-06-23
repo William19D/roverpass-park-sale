@@ -35,22 +35,9 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 
 const queryClient = new QueryClient();
 
-// Configuración del basename basada en el entorno
+// Configuración del basename - para Vercel no necesitamos basename
 const getBasename = () => {
-  const isLocalhost = window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1';
-  const isProduction = import.meta.env.PROD;
-  
-  // En desarrollo local, no usar basename
-  if (isLocalhost) {
-    return '';
-  }
-  
-  // En producción, usar el prefijo
-  if (isProduction) {
-    return '/rv-parks-for-sale';
-  }
-  
+  // En Vercel, usar siempre basename vacío ya que las rewrites manejan las rutas
   return '';
 };
 
